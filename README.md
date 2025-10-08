@@ -44,7 +44,7 @@ Limpeza e reinício
 
 Opção para reiniciar a seleção de pontos e calcular uma nova rota.
 
-⚙️ Funcionalidades Opcionais
+Funcionalidades Opcionais
 
 Pesquisa de localização (Nominatim):
 Campo de pesquisa para encontrar locais e centralizar o mapa automaticamente.
