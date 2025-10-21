@@ -4,19 +4,19 @@
  */
 
 import { MapManager } from "./mapManager.js";
-import { RouteManager } from "../core/routeManager.js";
-import { SearchManager } from "../core/searchManager.js";
-import { POIManager } from "../core/poiManager.js";
-import { StateManager } from "../core/stateManager.js";
+// import { RouteManager } from "../core/routeManager.js";
+// import { SearchManager } from "../core/searchManager.js";
+// import { POIManager } from "../core/poiManager.js";
+// import { StateManager } from "../core/stateManager.js";
 import { Utils } from "../utils/helpers.js";
 
 export class UIController {
     constructor() {
         this.mapManager = new MapManager();
-        this.routeManager = new RouteManager();
-        this.searchManager = new SearchManager();
-        this.poiManager = new POIManager();
-        this.state = new StateManager();
+        // this.routeManager = new RouteManager();
+        // this.searchManager = new SearchManager();
+        // this.poiManager = new POIManager();
+        // this.state = new StateManager();
     }
 
     /**

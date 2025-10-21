@@ -2,11 +2,10 @@
   "name": "ads_mei",
   "version": "1.0.0",
   "description": "Este projeto tem como objetivo desenvolver uma aplicação interativa que permita ao utilizador explorar um mapa baseado nos dados do OpenStreetMap (OSM), traçar rotas entre pontos de interesse e obter informações detalhadas sobre o trajeto e a área circundante.\r A aplicação integra múltiplas APIs REST para cálculo de rotas, geocodificação e pesquisa de locais, permitindo uma experiência dinâmica e informativa.",
-  "main": "index.js",
-  "type": "module",
+  "main": "app.js",
   "scripts": {
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js --config jest.config.js --coverage",
-    "start": "http-server -c-1"
+    "start": "node app.js"
   },
   "repository": {
     "type": "git",
@@ -19,6 +18,13 @@
     "url": "https://github.com/ricardo-ourelo/ADS_MEI/issues"
   },
   "homepage": "https://github.com/ricardo-ourelo/ADS_MEI#readme",
+  "dependencies": {
+    "axios": "^1.12.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.6.1",
+    "ejs": "^3.1.10",
+    "express": "^4.21.2"
+  },
   "devDependencies": {
     "http-server": "^14.1.1",
     "jest": "^30.2.0",
@@ -26,3 +32,4 @@
     "jsdom": "^27.0.1"
   }
 }
+
