@@ -1,5 +1,5 @@
 const axios = require('axios');
-const RouteModel = require('../models/apiClient');
+const APIClient = require('../models/apiClient');
 
 const poiManager = {
 
@@ -13,7 +13,7 @@ const poiManager = {
         });
       }
 
-      const pois = await RouteModel.getPointsOfInterest(bbox, types);
+      const pois = await APIClient.getPointsOfInterest(bbox, types);
       res.json(pois);
     } catch (error) {
       console.error('Erro ao buscar POIs:', error);
