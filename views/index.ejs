@@ -17,13 +17,21 @@
 <div id="page-map">
     <aside>
         <header>
-        <img src="images/map-marker.svg" alt="Happy" />
-        <h2>Escolha um lugar no mapa</h2>
+            <img src="images/map-marker.svg" alt="Happy" />
+            <h2>Escolha um lugar no mapa</h2>
         </header>
-        <footer>
-        <!-- <strong>Description</strong><br />
-        <span>My locaction</span> -->
-        </footer>
+
+        <div class="inputs">
+            <label>Origem:</label>
+            <input type="text" id="origem" placeholder="Clique no mapa ou escreva..." />
+
+            <label>Destino:</label>
+            <input type="text" id="destino" placeholder="Clique no mapa ou escreva..." />
+
+            <button id="calcularRota" disabled>Calcular Rota</button>
+        </div>
+
+        <footer></footer>
     </aside>
     <div id="map"></div>
 </div>
