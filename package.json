@@ -1,6 +1,7 @@
 {
   "name": "ads_mei",
   "version": "1.0.0",
+  "type": "module",
   "description": "Este projeto tem como objetivo desenvolver uma aplicação interativa que permita ao utilizador explorar um mapa baseado nos dados do OpenStreetMap (OSM), traçar rotas entre pontos de interesse e obter informações detalhadas sobre o trajeto e a área circundante.\r A aplicação integra múltiplas APIs REST para cálculo de rotas, geocodificação e pesquisa de locais, permitindo uma experiência dinâmica e informativa.",
   "main": "app.js",
   "scripts": {
