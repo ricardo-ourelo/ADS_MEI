@@ -119,15 +119,15 @@ class APIClient {
   }
 
   // Calcular velocidade média por perfil (km/h)
-  static getAverageSpeed(profile) {
-    const speeds = {
-      'car': 50,      // 50 km/h média cidade
-      'mota': 60,     // 60 km/h média cidade (mais ágil)
-      'bicicleta': 15, // 15 km/h média
-      'walking': 5    // 5 km/h caminhada
-    };
-    return speeds[profile] || 50;
-  }
+  // static getAverageSpeed(profile) {
+  //   const speeds = {
+  //     'car': 50,      // 50 km/h média cidade
+  //     'mota': 60,     // 60 km/h média cidade (mais ágil)
+  //     'bicicleta': 15, // 15 km/h média
+  //     'walking': 5    // 5 km/h caminhada
+  //   };
+  //   return speeds[profile] || 50;
+  // }
 
   // Obter pontos de interesse com Overpass API
   static async getPointsOfInterest(bbox, types = 'amenity') {

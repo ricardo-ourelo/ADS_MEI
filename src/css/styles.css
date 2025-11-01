@@ -148,3 +148,21 @@ html, body {
 .inputs button:hover:not(:disabled) {
   background: #17D6EB;
 }
+
+
+/* Poup style */
+
+.leaflet-popup-content {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    min-width: 200px;
+}
+
+.leaflet-popup-content button {
+    padding: 8px 12px;
+    margin: 5px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    background: #3498db;
+    color: white;
+}
