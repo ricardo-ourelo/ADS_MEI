@@ -119,9 +119,9 @@ class UIController {
         });
         
         // Event listener do perfil
-        // document.getElementById('profile').addEventListener('change', (e) => {
-        //     this.stateManager.setActiveProfile(e.target.value);
-        // });
+         document.getElementById('profile').addEventListener('change', (e) => {
+             this.stateManager.setActiveProfile(e.target.value);
+         });
         
         // Handler global para seleção de localização
         window.selectSearchLocation = (lat, lng, displayName) => {
@@ -156,7 +156,7 @@ class UIController {
         
         // Listener para rota calculada
         this.stateManager.addListener('routeChanged', (route) => {
-            ///this.displayRouteInfo(route);
+            this.displayRouteInfo(route);
         });
 
         // Listener para limpeza geral
@@ -392,9 +392,41 @@ class UIController {
         }
     }
 
+    /**
+     * Exibe informações da rota
+     * @param {Object} routeData - Dados da rota
+     */
+    displayRouteInfo(routeData) {
+        const profile = this.stateManager.getActiveProfile();
+        const routeInfo = this.routeManager.getRouteInfo(routeData, profile);
+
+        const routeInfoElement = document.getElementById('route-info');
+        routeInfoElement.innerHTML = `
+            <h3>${routeInfo.profileIcon} Informações da Rota</h3>
+            <div class="info-item">
+                <strong>📏 Distância:</strong> ${routeInfo.distance} km
+            </div>
+            <div class="info-item">
+                <strong>⏱️ Duração:</strong> ${routeInfo.duration}
+            </div>
+            <div class="info-item">
+                <strong>🚀 Velocidade média:</strong> ${routeInfo.avgSpeed} km/h
+            </div>
+            <div class="info-item">
+                <strong>🎯 Perfil:</strong> ${routeInfo.profileName}
+            </div>
+            ${routeInfo.originalDuration ? `
+            <div class="info-item" style="font-size: 0.8em; color: #666;">
+                <em>* Tempo ajustado para ${routeInfo.profileName}</em>
+            </div>
+            ` : ''}
+        `;
+
+        routeInfoElement.classList.remove('hidden');
+    }
 
 
-    
+
     /**
      * Mostra estado de loading
      * @param {string} field - Campo em loading
