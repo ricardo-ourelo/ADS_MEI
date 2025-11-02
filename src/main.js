@@ -4,7 +4,8 @@
  */
 
 import { UIController } from "./ui/uiController.js";
-import { MapManager } from "./ui/mapManager.js";
+import { MapManager } from "../core/mapManager.js";
+
 /**
  * Inicializa a aplicação ao carregar a página.
  */

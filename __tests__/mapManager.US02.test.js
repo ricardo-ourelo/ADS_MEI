@@ -5,7 +5,7 @@
  */
 
 import { jest } from "@jest/globals";
-import { MapManager } from "../src/ui/mapManager.js";
+import { MapManager } from "../src/core/mapManager.js";
 
 // Mock do Leaflet (para não precisar de mapa real)
 global.L = {

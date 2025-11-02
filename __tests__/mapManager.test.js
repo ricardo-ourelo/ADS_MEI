@@ -6,7 +6,7 @@
 
 // Importa o objeto jest explicitamente (necessário em ESM)
 import { jest } from "@jest/globals";
-import { MapManager } from "../src/ui/mapManager.js";
+import { MapManager } from "../src/core/mapManager.js";
 
 // Mock do Leaflet (para evitar carregar mapa real)
 global.L = {
