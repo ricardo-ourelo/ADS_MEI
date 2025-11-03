@@ -107,7 +107,7 @@ class UIController {
         document.getElementById('calculate-route-btn').addEventListener('click', () => this.handleCalculateRoute());
         // document.getElementById('search-sart-btn').addEventListener('click', () => this.handleSearch('start'));
         // document.getElementById('search-end-btn').addEventListener('click', () => this.handleSearch('end'));
-        // document.getElementById('clear-route-btn').addEventListener('click', () => this.handleClearRoute());
+        document.getElementById('clear-route-btn').addEventListener('click', () => this.handleClearRoute());
         
         // Event listeners dos inputs (Enter)
         document.getElementById('start').addEventListener('keypress', (e) => {
@@ -312,10 +312,10 @@ class UIController {
     clearCurrentRoute() {
         this.routeManager.clearRoute();
         
-        // Esconder informações da rota
-        /// const routeInfoElement = document.getElementById('route-info');
-        /// routeInfoElement.classList.add('hidden');
-        /// routeInfoElement.innerHTML = '';
+        //Esconder informações da rota
+        const routeInfoElement = document.getElementById('route-info');
+        routeInfoElement.classList.add('hidden');
+        routeInfoElement.innerHTML = '';
         
         // Resetar estilo do botão de calcular rota
         const calculateBtn = document.getElementById('calculate-route-btn');
