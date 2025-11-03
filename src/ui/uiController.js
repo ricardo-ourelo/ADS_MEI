@@ -523,3 +523,5 @@ window.uiController = new UIController();
 document.addEventListener('DOMContentLoaded', () => {
     window.uiController.initialize('map');
 });
+
+export default UIController;

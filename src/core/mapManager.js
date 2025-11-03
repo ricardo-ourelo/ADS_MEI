@@ -97,19 +97,25 @@ export class MapManager {
      * Adiciona marcador no mapa
      * @param {number} lat - Latitude
      * @param {number} lng - Longitude
-     * @param {Object} options - Opções do marcador
+     * @param {Object|string} options - Opções do marcador ou título do marcador
      * @param {string} popupContent - Conteúdo do popup
      * @returns {L.Marker} Marcador criado
      */
     addMarker(lat, lng, options = {}, popupContent = '') {
+        // Se o segundo parâmetro for uma string, converte-a em { title: string }
+        if (typeof options === 'string') {
+            options = { title: options };
+        }
+
         const marker = L.marker([lat, lng], options).addTo(this.map);
-        
+
         if (popupContent) {
             marker.bindPopup(popupContent);
         }
-        
+
         return marker;
     }
+
 
 
     /**

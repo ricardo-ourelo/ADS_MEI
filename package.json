@@ -4,7 +4,7 @@
   "description": "Este projeto tem como objetivo desenvolver uma aplicação interativa que permita ao utilizador explorar um mapa baseado nos dados do OpenStreetMap (OSM), traçar rotas entre pontos de interesse e obter informações detalhadas sobre o trajeto e a área circundante.\r A aplicação integra múltiplas APIs REST para cálculo de rotas, geocodificação e pesquisa de locais, permitindo uma experiência dinâmica e informativa.",
   "main": "app.js",
   "scripts": {
-    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js --config jest.config.js --coverage",
+    "test": "set NODE_OPTIONS=--experimental-vm-modules && node node_modules/jest/bin/jest.js --config jest.config.js --coverage",
     "start": "node app.js"
   },
   "repository": {
@@ -26,10 +26,12 @@
     "express": "^4.21.2"
   },
   "devDependencies": {
+    "@babel/core": "^7.28.5",
+    "@babel/preset-env": "^7.28.5",
+    "babel-jest": "^30.2.0",
     "http-server": "^14.1.1",
     "jest": "^30.2.0",
     "jest-environment-jsdom": "^30.2.0",
     "jsdom": "^27.0.1"
   }
 }
-
