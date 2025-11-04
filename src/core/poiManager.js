@@ -61,8 +61,6 @@ export class POIManager {
             })
         }).addTo(this.map).bindPopup(popupContent);
 
-            // Centralizar mapa na localização
-        this.map.setView([lat, lng], 13);
 
         return this.routeMarkers[type];
     }

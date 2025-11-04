@@ -192,10 +192,7 @@ class UIController {
         } else {
             this.stateManager.setEndLocation(location);
         }
-        
-        // Centralizar mapa na localização selecionada
-        this.mapManager.setView(lat, lng, 13);
-        
+
         // Fechar resultados e popups
         ///document.getElementById('search-results').innerHTML = '';
         ///this.searchManager.clearSearchMarkers();
