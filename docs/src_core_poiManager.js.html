@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: src/core/poiManager.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: src/core/poiManager.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>/**
+ * @file poiManager.js
+ * @description Classe responsável por gerir Pontos de Interesse (POIs), marcadores de rota
+ * e localização atual no mapa Leaflet.
+ * @module core/poiManager
+ */
+
+/**
+ * Gerencia Pontos de Interesse (POIs) e marcadores no mapa.
+ * @class
+ */
+export class POIManager {
+    constructor(map) {
+        this.map = map;
+        this.currentLocationMarker = null;
+        this.poiMarkers = new Map();
+        this.routeMarkers = {
+            start: null,
+            end: null
+        };
+
+    }
+
+       /**
+     * Adiciona marcador da localização atual
+     * @param {number} lat - Latitude
+     * @param {number} lng - Longitude
+     * @param {string} popupText - Texto do popup
+     * @returns {L.Marker} Marcador criado
+     */
+    addCurrentLocationMarker(lat, lng, popupText = 'Sua localização atual') {
+        if (this.currentLocationMarker) {
+            this.map.removeLayer(this.currentLocationMarker);
+        }
+
+        this.currentLocationMarker = L.marker([lat, lng])
+            .addTo(this.map)
+            .bindPopup(popupText)
+            .openPopup();
+
+        return this.currentLocationMarker;
+    }
+
+    /**
+     * Adiciona ou atualiza marcador de rota (origem/destino)
+     * @param {string} type - Tipo: 'start' ou 'end'
+     * @param {number} lat - Latitude
+     * @param {number} lng - Longitude
+     * @param {string} address - Endereço para popup
+     * @returns {L.Marker} Marcador criado/atualizado
+     */
+    addRouteMarker(type, lat, lng, address = '') {
+        // Remove marcador anterior se existir
+        if (this.routeMarkers[type]) {
+            this.map.removeLayer(this.routeMarkers[type]);
+        }
+
+        const icon = type === 'start' ? '🟢' : '🔴';
+        const popupText = type === 'start' ? '📍 Origem' : '🎯 Destino';
+        const popupContent = address ? `&lt;strong>${popupText}&lt;/strong>&lt;br>${address}` : popupText;
+
+        this.routeMarkers[type] = L.marker([lat, lng], {
+            icon: L.divIcon({
+                className: `route-marker ${type}-marker`,
+                html: icon,
+                iconSize: [25, 25],
+                iconAnchor: [12, 12]
+            })
+        }).addTo(this.map).bindPopup(popupContent);
+
+
+        return this.routeMarkers[type];
+    }
+
+    /**
+     * Remove marcador de rota
+     * @param {string} type - Tipo: 'start' ou 'end'
+     * @returns {boolean} True se removido com sucesso
+     */
+    removeRouteMarker(type) {
+        if (this.routeMarkers[type]) {
+            this.map.removeLayer(this.routeMarkers[type]);
+            this.routeMarkers[type] = null;
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Remove todos os marcadores de rota
+     */
+    clearRouteMarkers() {
+        this.removeRouteMarker('start');
+        this.removeRouteMarker('end');
+    }
+
+    /**
+     * Obtém marcador de rota
+     * @param {string} type - Tipo: 'start' ou 'end'
+     * @returns {L.Marker|null} Marcador
+     */
+    getRouteMarker(type) {
+        return this.routeMarkers[type];
+    }
+
+    /**
+     * Verifica se ambos marcadores de rota existem
+     * @returns {boolean} True se ambos existem
+     */
+    hasBothRouteMarkers() {
+        return this.routeMarkers.start !== null &amp;&amp; this.routeMarkers.end !== null;
+    }
+
+}
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-controllers_appManager.html">controllers/appManager</a></li><li><a href="module-controllers_poiManager.html">controllers/poiManager</a></li><li><a href="module-controllers_routeManager.html">controllers/routeManager</a></li><li><a href="module-controllers_searchManager.html">controllers/searchManager</a></li><li><a href="module-core_mapManager.html">core/mapManager</a></li><li><a href="module-core_poiManager.html">core/poiManager</a></li><li><a href="module-core_profileManager.html">core/profileManager</a></li><li><a href="module-core_routeManager.html">core/routeManager</a></li><li><a href="module-core_stateManager.html">core/stateManager</a></li><li><a href="module-ui_uiController.html">ui/uiController</a></li></ul><h3>Classes</h3><ul><li><a href="APIClient.html">APIClient</a></li><li><a href="module-core_mapManager.MapManager.html">MapManager</a></li><li><a href="module-core_poiManager.POIManager.html">POIManager</a></li><li><a href="module-core_profileManager.ProfileManager.html">ProfileManager</a></li><li><a href="module-core_routeManager.RouteManager.html">RouteManager</a></li><li><a href="module-core_stateManager.StateManager.html">StateManager</a></li><li><a href="module-ui_uiController-UIController.html">UIController</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.5</a> on Tue Nov 04 2025 10:59:10 GMT+0000 (Hora padrão da Europa Ocidental)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>
