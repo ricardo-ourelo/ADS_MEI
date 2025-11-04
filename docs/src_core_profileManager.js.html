@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: src/core/profileManager.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: src/core/profileManager.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>/**
+ * @file profileManager.js
+ * @description Define e gere os perfis de rota disponíveis (carro, mota, bicicleta, a pé),
+ * incluindo ícones, cores e velocidades médias.
+ * @module core/profileManager
+ */
+
+/**
+ * Gerencia perfis de rota, cores e ícones.
+ * @class
+ */
+export class ProfileManager {
+    constructor() {
+        this.profiles = {
+            'car': {
+                name: 'de Carro',
+                icon: '🚗',
+                color: '#e74c3c',
+                speed: 50, // km/h
+                type: 'vehicle'
+            },
+            'mota': {
+                name: 'de Mota',
+                icon: '🏍️',
+                color: '#9b59b6',
+                speed: 60, // km/h
+                type: 'vehicle'
+            },
+            'bicicleta': {
+                name: 'de Bicicleta',
+                icon: '🚴',
+                color: '#27ae60',
+                speed: 15, // km/h
+                type: 'bicycle'
+            },
+            'walking': {
+                name: 'a Pé',
+                icon: '🚶',
+                color: '#3498db',
+                speed: 5, // km/h
+                type: 'pedestrian'
+            }
+        };
+    }
+
+    /**
+     * Obtém configuração completa de um perfil
+     * @param {string} profileId - ID do perfil
+     * @returns {Object} Configuração do perfil
+     */
+    getProfile(profileId) {
+        return this.profiles[profileId] || this.profiles['car'];
+    }
+
+    /**
+     * Obtém nome amigável do perfil
+     * @param {string} profileId - ID do perfil
+     * @returns {string} Nome do perfil
+     */
+    getProfileName(profileId) {
+        const profile = this.getProfile(profileId);
+        return profile.name;
+    }
+
+    /**
+     * Obtém ícone do perfil
+     * @param {string} profileId - ID do perfil
+     * @returns {string} Ícone do perfil
+     */
+    getProfileIcon(profileId) {
+        const profile = this.getProfile(profileId);
+        return profile.icon;
+    }
+
+    /**
+     * Obtém cor do perfil
+     * @param {string} profileId - ID do perfil
+     * @returns {string} Cor hexadecimal
+     */
+    getProfileColor(profileId) {
+        const profile = this.getProfile(profileId);
+        return profile.color;
+    }
+
+    /**
+     * Obtém velocidade média do perfil
+     * @param {string} profileId - ID do perfil
+     * @returns {number} Velocidade em km/h
+     */
+    getProfileSpeed(profileId) {
+        const profile = this.getProfile(profileId);
+        return profile.speed;
+    }
+
+    /**
+     * Obtém todos os perfis disponíveis
+     * @returns {Object} Todos os perfis
+     */
+    getAllProfiles() {
+        return this.profiles;
+    }
+
+    
+    /**
+     * Valida se um perfil existe
+     * @param {string} profileId - ID do perfil a validar
+     * @returns {boolean} True se o perfil é válido
+     */
+    isValidProfile(profileId) {
+        return this.profiles.hasOwnProperty(profileId);
+    }
+}</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-controllers_appManager.html">controllers/appManager</a></li><li><a href="module-controllers_poiManager.html">controllers/poiManager</a></li><li><a href="module-controllers_routeManager.html">controllers/routeManager</a></li><li><a href="module-controllers_searchManager.html">controllers/searchManager</a></li><li><a href="module-core_mapManager.html">core/mapManager</a></li><li><a href="module-core_poiManager.html">core/poiManager</a></li><li><a href="module-core_profileManager.html">core/profileManager</a></li><li><a href="module-core_routeManager.html">core/routeManager</a></li><li><a href="module-core_stateManager.html">core/stateManager</a></li><li><a href="module-ui_uiController.html">ui/uiController</a></li></ul><h3>Classes</h3><ul><li><a href="APIClient.html">APIClient</a></li><li><a href="module-core_mapManager.MapManager.html">MapManager</a></li><li><a href="module-core_poiManager.POIManager.html">POIManager</a></li><li><a href="module-core_profileManager.ProfileManager.html">ProfileManager</a></li><li><a href="module-core_routeManager.RouteManager.html">RouteManager</a></li><li><a href="module-core_stateManager.StateManager.html">StateManager</a></li><li><a href="module-ui_uiController-UIController.html">UIController</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.5</a> on Tue Nov 04 2025 10:59:10 GMT+0000 (Hora padrão da Europa Ocidental)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sistema Interativo de Rotas</title>
+
+    <!-- Leaflet CSS -->
+    <link
+            rel="stylesheet"
+            href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    />
+
+    <!-- geral style -->
+    <link rel="stylesheet" href="/css/panel.css" />
+    <!-- style panel -->
+    <link rel="stylesheet" href="/css/styles.css" />
+</head>
+<body>
+<div id="page-map">
+    <aside>
+        <header>
+            <img src="images/map-marker.svg" alt="Happy" />
+            <h2>Escolha um lugar no mapa</h2>
+        </header>
+
+        <!-- Campos panel lateral-->
+        <div class="search-form">
+            <div class="input-group">
+                <label for="start">Origem:</label>
+                <div class="input-with-button">
+                    <input type="text" id="start" placeholder="Digite o endereço de origem">
+                    <button type="button" id="search-start-btn" class="search-btn">🔍</button>
+                </div>
+            </div>
+
+            <div class="input-group">
+                <label for="end">Destino:</label>
+                <div class="input-with-button">
+                    <input type="text" id="end" placeholder="Digite o endereço de destino">
+                    <button type="button" id="search-end-btn" class="search-btn">🔍</button>
+                </div>
+            </div>
+
+            <div class="profile-selector">
+                <label>Perfil de Rota:</label>
+                <select id="profile">
+                    <option value="car">🚗 Carro (50 km/h)</option>
+                    <option value="mota">🏍️ Mota (60 km/h)</option>
+                    <option value="bicicleta">🚴 Bicicleta (15 km/h)</option>
+                    <option value="walking">🚶 A Pé (5 km/h)</option>
+                </select>
+            </div>
+
+            <div class="actions">
+                <button id="calculate-route-btn" class="btn-primary">Calcular Rota</button>
+                <button id="clear-route-btn" class="btn-secondary">Limpar Tudo</button>
+            </div>
+        </div>
+
+        <div id="route-info" class="route-info">
+            <h3>📊 Informações da Rota</h3>
+            <div id="distance" class="info-item"></div>
+            <div id="duration" class="info-item"></div>
+        </div>
+
+        <!-- Campos panel lateral-->
+        <div id="search-results" class="search-results"></div>
+
+
+        <footer class="route-controls">
+            <!-- <strong>Description</strong><br />
+            <span>My locaction</span> -->
+        </footer>
+    </aside>
+
+    <div id="map"></div>
+</div>
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script type="module" src="ui/uiController.js"></script>
+
+</body>
+</html>
