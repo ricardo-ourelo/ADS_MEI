@@ -5,6 +5,15 @@ let lastRequestTime = 0;
 const REQUEST_INTERVAL = 1000; // 1 segundo (Nominatim limita a 1 req/s)
 const NOMINATIM_TIMEOUT = 4000; // 4 segundos
 
+/**
+ * Classe responsável por interagir com APIs externas:
+ * - OSRM (cálculo de rotas)
+ * - Nominatim (geocodificação direta e reversa)
+ * - Photon (fallback)
+ * - Overpass (pontos de interesse)
+ *
+ * Inclui mecanismos de cache, controlo de taxa e fallback automático.
+ */
 class APIClient {
   static OSRM_BASE_URL = 'http://router.project-osrm.org';
   static NOMINATIM_BASE_URL = 'https://nominatim.openstreetmap.org';
@@ -39,8 +48,12 @@ class APIClient {
   };
 
   /**
-   * Pesquisa de localizações (Nominatim)
-   * Inclui cache, throttling (1 req/s) e timeout seguro.
+   * Pesquisa localizações (texto → coordenadas) usando Nominatim ou Photon.
+   * @async
+   * @param {string} query - Texto de pesquisa (ex: "Lisboa" ou "38.71,-9.13").
+   * @param {string} [format="json"] - Formato de resposta esperado.
+   * @param {number} [limit=10] - Número máximo de resultados a devolver.
+   * @returns {Promise<Object[]>} Lista de resultados de pesquisa.
    */
   static async searchLocation(query, format = "json", limit = 10) {
     const key = query.trim().toLowerCase();
@@ -143,8 +156,12 @@ class APIClient {
 
 
   /**
-   * Geocodificação reversa (lat,lng → endereço)
-   * Usa Nominatim com fallback para Photon se o primeiro falhar.
+   * Obtém o endereço correspondente a coordenadas (lat,lng → texto).
+   * Utiliza Nominatim e faz fallback para Photon em caso de falha.
+   * @async
+   * @param {number} lat - Latitude do ponto.
+   * @param {number} lon - Longitude do ponto.
+   * @returns {Promise<Object>} Objeto com o nome do local e detalhes de endereço.
    */
   static async reverseGeocode(lat, lon) {
     const key = `${lat.toFixed(5)},${lon.toFixed(5)}`;
@@ -225,7 +242,15 @@ class APIClient {
   }
 
 
-  // Calcular rota com OSRM e ajustar tempos baseado no perfil
+
+  /**
+   * Calcula uma rota entre dois pontos via API OSRM.
+   * @async
+   * @param {Object} start - Ponto inicial `{ lat, lng }`.
+   * @param {Object} end - Ponto final `{ lat, lng }`.
+   * @param {string} profile - Perfil de transporte ("car", "bike", "foot", etc.).
+   * @returns {Promise<Object>} Dados completos da rota (geoJSON, distância, tempo).
+   */
   static async calculateRoute(start, end, profile = 'car') {
     const config = this.profileConfig[profile] || this.profileConfig.car;
     const osrmProfile = config.osrmProfile;
@@ -248,7 +273,18 @@ class APIClient {
     return adjustedData;
   }
 
-  // Ajustar duração e distância baseado no perfil
+  /**
+   * Ajusta a duração e as anotações de uma rota de acordo com o perfil de transporte.
+   * Aplica um fator de velocidade (`speedFactor`) para simular diferenças entre modos de locomoção.
+   *
+   * @param {Object} routeData - Objeto da rota devolvido pela API OSRM.
+   * @param {string} profile - Tipo de transporte ("car", "mota", "bicicleta", "walking", etc.).
+   * @returns {Object} O mesmo objeto de rota com as durações ajustadas e metadados do perfil adicionados.
+   *
+   * @example
+   * const adjusted = APIClient.adjustRouteForProfile(routeData, "bicicleta");
+   * console.log(adjusted.routes[0].duration); // duração ajustada pela velocidade da bicicleta
+   */
   static adjustRouteForProfile(routeData, profile) {
     if (routeData.code !== 'Ok' || !routeData.routes || routeData.routes.length === 0) {
       return routeData;
@@ -301,7 +337,23 @@ class APIClient {
   //   return speeds[profile] || 50;
   // }
 
-  // Obter pontos de interesse com Overpass API
+
+  /**
+   * Obtém pontos de interesse (POIs) dentro de uma área geográfica definida,
+   * utilizando a Overpass API. A query busca nós, vias e relações com o atributo especificado.
+   *
+   * @async
+   * @param {string} bbox - Caixa delimitadora no formato "sul, oeste, norte, leste"
+   *   (por exemplo: "38.70,-9.20,38.80,-9.10").
+   * @param {string} [types="amenity"] - Tipo ou grupo de tags OSM a procurar (ex: "amenity", "tourism", "shop").
+   * @returns {Promise<Object>} Objeto JSON devolvido pela API Overpass, contendo os elementos encontrados.
+   *
+   * @example
+   * const bbox = "38.70,-9.20,38.80,-9.10";
+   * const pois = await APIClient.getPointsOfInterest(bbox, "amenity=restaurant");
+   * console.log(pois.elements); // lista de POIs encontrados
+   */
+
   static async getPointsOfInterest(bbox, types = 'amenity') {
     const overpassQuery = `
       [out:json][timeout:25];

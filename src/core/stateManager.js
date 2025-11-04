@@ -1,5 +1,13 @@
 /**
- * Gerencia o estado da aplicação
+ * @file stateManager.js
+ * @description Classe responsável por armazenar e gerir o estado global da aplicação,
+ * incluindo localização inicial/final, rota ativa, perfil e eventos de mudança.
+ * @module core/stateManager
+ */
+
+/**
+ * Gerencia o estado da aplicação.
+ * @class
  */
 export class StateManager {
     constructor() {

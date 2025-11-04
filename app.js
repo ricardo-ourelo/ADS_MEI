@@ -1,9 +1,15 @@
+/**
+ * @file app.js
+ * @description Configuração principal do servidor Express.
+ * Define middlewares, rotas e inicializa o servidor.
+ */
 require('dotenv').config();
 const express = require('express');
 const path = require('path');
 const cors = require('cors');
 
 const app = express();
+
 
 // Configurações
 app.set('view engine', 'ejs');

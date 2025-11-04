@@ -1,7 +1,14 @@
 /**
- * Gerencia Pontos de Interesse (POIs) e marcadores no mapa
+ * @file poiManager.js
+ * @description Classe responsável por gerir Pontos de Interesse (POIs), marcadores de rota
+ * e localização atual no mapa Leaflet.
+ * @module core/poiManager
  */
 
+/**
+ * Gerencia Pontos de Interesse (POIs) e marcadores no mapa.
+ * @class
+ */
 export class POIManager {
     constructor(map) {
         this.map = map;

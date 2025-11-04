@@ -1,5 +1,13 @@
 /**
- * Gerencia cálculo e exibição de rotas
+ * @file routeManager.js
+ * @description Classe responsável por calcular e exibir rotas no mapa Leaflet,
+ * comunicando com a API backend `/api/route` e gerindo a camada de rotas.
+ * @module core/routeManager
+ */
+
+/**
+ * Gerencia cálculo e exibição de rotas.
+ * @class
  */
 export class RouteManager {
     constructor(map, profileManager) {

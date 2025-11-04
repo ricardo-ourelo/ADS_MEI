@@ -1,5 +1,13 @@
 /**
- * Gerencia perfis de rota, cores e ícones
+ * @file profileManager.js
+ * @description Define e gere os perfis de rota disponíveis (carro, mota, bicicleta, a pé),
+ * incluindo ícones, cores e velocidades médias.
+ * @module core/profileManager
+ */
+
+/**
+ * Gerencia perfis de rota, cores e ícones.
+ * @class
  */
 export class ProfileManager {
     constructor() {

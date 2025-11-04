@@ -1,5 +1,13 @@
 /**
- * Gerencia o mapa e suas interações
+ * @file mapManager.js
+ * @description Classe responsável por inicializar, renderizar e gerir o mapa Leaflet,
+ * incluindo camadas, marcadores e eventos de clique.
+ * @module core/mapManager
+ */
+
+/**
+ * Gerencia o mapa e suas interações.
+ * @class
  */
 export class MapManager {
     constructor(containerId) {

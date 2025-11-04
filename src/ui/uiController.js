@@ -5,9 +5,17 @@ import { ProfileManager } from "../core/profileManager.js";
 import { POIManager } from "../core/poiManager.js";
 
 /**
- * Controlador principal da UI - integra todas as classes
+ * @file uiController.js
+ * @description Controlador principal da interface do utilizador (UI).
+ * Integra os managers de mapa, estado, rotas, perfis e POIs.
+ * Responsável por lidar com eventos do utilizador e atualizar o mapa.
+ * @module ui/uiController
  */
 
+/**
+ * Classe principal da interface do utilizador (UI).
+ * @class
+ */
 class UIController {
     constructor() {
         this.mapManager = null;
