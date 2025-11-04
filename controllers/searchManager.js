@@ -18,8 +18,8 @@ const searchManager = {
    * Endpoint: `/api/search?q=<texto>&format=json&limit=10`
    * @async
    * @function searchLocation
-   * @param {import('express').Request} req - Pedido HTTP do Express.
-   * @param {import('express').Response} res - Resposta HTTP do Express.
+   * @param {object} req - Pedido HTTP do Express.
+   * @param {object} res - Resposta HTTP do Express.
    * @returns {Promise<void>} Envia um JSON com resultados de pesquisa (coordenadas e nomes).
    */
   searchLocation: async (req, res) => {

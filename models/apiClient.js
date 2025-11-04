@@ -1,3 +1,9 @@
+/**
+ * @file app.js
+ * @description Configuração principal do servidor Express.
+ * Define middlewares, rotas e inicializa o servidor.
+ */
+
 const axios = require('axios');
 
 const cache = new Map();

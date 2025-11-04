@@ -13,8 +13,8 @@ const appManager = {
   /**
    * Rendeiriza a página inicial do Planeador de Rotas.
    * @function index
-   * @param {import('express').Request} req - Objeto de pedido HTTP do Express.
-   * @param {import('express').Response} res - Objeto de resposta HTTP do Express.
+   * @param {object} req - Objeto de pedido HTTP do Express.
+   * @param {object} res - Objeto de resposta HTTP do Express.
    * @returns {void} Rendeiriza a página inicial (index.ejs).
    */
   index: (req, res) => {

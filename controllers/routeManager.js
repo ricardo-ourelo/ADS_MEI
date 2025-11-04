@@ -18,8 +18,8 @@ const routeManager = {
    * Endpoint: `/api/route?start=<lat,lng>&end=<lat,lng>&profile=<car|bike|foot>`
    * @async
    * @function calculateRoute
-   * @param {import('express').Request} req - Pedido HTTP do Express.
-   * @param {import('express').Response} res - Resposta HTTP do Express.
+   * @param {object} req - Pedido HTTP do Express.
+   * @param {object} res - Resposta HTTP do Express.
    * @returns {Promise<void>} Envia um JSON com a rota calculada ou erro.
    */
   calculateRoute: async (req, res) => {

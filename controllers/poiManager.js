@@ -18,8 +18,8 @@ const poiManager = {
    * Endpoint: `/api/poi?bbox=<sul, oeste, norte, este>&types=<tipo>`
    * @async
    * @function getPOI
-   * @param {import('express').Request} req - Pedido HTTP do Express.
-   * @param {import('express').Response} res - Resposta HTTP do Express.
+   * @param {object} req - Pedido HTTP do Express.
+   * @param {object} res - Resposta HTTP do Express.
    * @returns {Promise<void>} Envia um JSON com os POIs encontrados.
    */
   getPOI: async (req, res) => {
