@@ -3,6 +3,7 @@ import { StateManager } from "../core/stateManager.js";
 import { RouteManager } from "../core/routeManager.js";
 import { ProfileManager } from "../core/profileManager.js";
 import { POIManager } from "../core/poiManager.js";
+import {SearchManager} from "../core/searchManager.js";
 
 /**
  * @file uiController.js
@@ -23,6 +24,7 @@ class UIController {
         this.isInitialized = false;
         this.profileManager = null;
         this.routeManager = null;
+        this.searchManager = null;
         this.currentPopup = null;
         this.poiManager = null;
 
@@ -34,10 +36,9 @@ class UIController {
      * Inicializa a aplicação
      * @param {string} mapContainerId - ID do container do mapa
      */
-    
     async initialize(mapContainerId = 'map') {
         try {
-            // Inicializar gerenciadores
+            // Inicializar managers
             this.mapManager = new MapManager(mapContainerId);
             this.stateManager = new StateManager();
             this.profileManager = new ProfileManager();
@@ -45,14 +46,18 @@ class UIController {
             // Inicializar mapa
             this.mapManager.initialize();
             
-            // Inicializar gerenciadores dependentes do mapa
+            // Inicializar ‘gestores’ dependentes do mapa
             this.routeManager = new RouteManager(this.mapManager.getMap(), this.profileManager);
+            this.searchManager = new SearchManager(this.mapManager.getMap());
             this.poiManager = new POIManager(this.mapManager.getMap());
             // Configurar event listeners
             this.setupEventListeners();
             this.setupStateListeners();
 
-            // Obter localização do usuário
+            // Configurar UI inicial
+            this.initializeUI();
+
+            // Obter localização do utilizador
             await this.getUserLocation();
             
             this.isInitialized = true;
@@ -64,57 +69,14 @@ class UIController {
         }
     }
 
-
-    
-    /**
-     * Obtém localização do usuário
-     */
-    async getUserLocation() {
-        if (!navigator.geolocation) {
-            this.showNotification('Geolocalização não suportada', 'warning');
-            return;
-        }
-        
-        navigator.geolocation.getCurrentPosition(
-            (position) => {
-                const lat = position.coords.latitude;
-                const lng = position.coords.longitude;
-                
-                this.stateManager.setUserLocation({ lat, lng });
-                this.mapManager.setView(lat, lng, 13);
-                
-                // Adicionar marcador da localização atual
-                this.poiManager.addCurrentLocationMarker(lat, lng, 'Sua localização atual');
-                
-                // Preencher origem automaticamente
-                document.getElementById('start').value = 'Minha Localização';
-                this.stateManager.setStartLocation({ 
-                    lat, 
-                    lng, 
-                    address: 'Minha Localização' 
-                });
-                
-            },
-            (error) => {
-                console.log('Não foi possível obter localização:', error);
-                this.showNotification('Não foi possível obter sua localização', 'warning');
-            },
-            {
-                timeout: 5000,
-                maximumAge: 600000
-            }
-        );
-    }
-
-
     /**
      * Configura event listeners da UI
      */
     setupEventListeners() {
         // Event listeners dos botões        
         document.getElementById('calculate-route-btn').addEventListener('click', () => this.handleCalculateRoute());
-        // document.getElementById('search-sart-btn').addEventListener('click', () => this.handleSearch('start'));
-        // document.getElementById('search-end-btn').addEventListener('click', () => this.handleSearch('end'));
+        document.getElementById('search-start-btn').addEventListener('click', () => this.handleSearch('start'));
+        document.getElementById('search-end-btn').addEventListener('click', () => this.handleSearch('end'));
         document.getElementById('clear-route-btn').addEventListener('click', () => this.handleClearRoute());
         
         // Event listeners dos inputs (Enter)
@@ -172,10 +134,106 @@ class UIController {
             this.clearAllMarkers();
         });
     }
+    /**
+     * Inicializa componentes da UI
+     */
+    initializeUI() {
+        // Adicionar legenda
+        const legendContent = this.profileManager.generateLegendHTML();
+        this.mapManager.addLegend(legendContent);
 
+        // Popular dropdown de perfis
+        this.populateProfileDropdown();
 
+        // Adicionar controles de POI
+        //this.addPOIControls();
 
-    
+        // Carregar POIs iniciais
+        //this.loadInitialPOIs();
+    }
+
+    /**
+     * Popula dropdown de perfis
+     */
+    populateProfileDropdown() {
+        const profileSelect = document.getElementById('profile');
+        const profiles = this.profileManager.getAllProfiles();
+
+        profileSelect.innerHTML = '';
+
+        Object.entries(profiles).forEach(([profileId, profile]) => {
+            const option = document.createElement('option');
+            option.value = profileId;
+            option.textContent = `${profile.icon} ${profile.name}`;
+            profileSelect.appendChild(option);
+        });
+    }
+
+    /**
+     * Manipula pesquisa de localização
+     * @param {string} field - Campo ('start' ou 'end')
+     */
+    async handleSearch(field) {
+        const input = document.getElementById(field);
+        const query = input.value.trim();
+
+        if (!query) {
+            this.showNotification('Por favor, digite um endereço para pesquisar', 'warning');
+            return;
+        }
+
+        try {
+            this.showLoading(field);
+            const results = await this.searchManager.searchLocation(query);
+            this.displaySearchResults(results, field);
+
+        } catch (error) {
+            this.showNotification('Erro ao pesquisar localização: ' + error.message, 'error');
+        } finally {
+            this.hideLoading(field);
+        }
+    }
+
+    /**
+     * Exibe resultados da pesquisa
+     * @param {Array} results - Resultados da pesquisa
+     * @param {string} field - Campo associado
+     */
+    displaySearchResults(results, field) {
+        const resultsContainer = document.getElementById('search-results');
+
+        if (!results || results.length === 0) {
+            resultsContainer.innerHTML = '<div class="search-result-item">Nenhum resultado encontrado</div>';
+            return;
+        }
+
+        resultsContainer.innerHTML = '';
+
+        results.forEach(result => {
+            const item = document.createElement('div');
+            item.className = 'search-result-item';
+            item.innerHTML = `
+                <strong>${result.display_name}</strong>
+                <br><small>Lat: ${result.lat}, Lon: ${result.lon}</small>
+            `;
+
+            item.onclick = () => {
+                this.handleLocationSelect(result.lat, result.lon, result.display_name, field);
+                resultsContainer.innerHTML = '';
+                this.searchManager.clearSearchMarkers();
+                this.closeCurrentPopup(); // Fechar popup ao selecionar
+            };
+
+            resultsContainer.appendChild(item);
+        });
+
+        // Adicionar marcadores no mapa
+        this.searchManager.addSearchMarkers(results, (lat, lng, name) => {
+            this.handleLocationSelect(lat, lng, name, field);
+            this.closeCurrentPopup(); // Fechar popup ao selecionar
+        });
+    }
+
     /**
      * Manipula seleção de localização
      * @param {number} lat - Latitude
@@ -202,8 +260,8 @@ class UIController {
         }
 
         // Fechar resultados e popups
-        ///document.getElementById('search-results').innerHTML = '';
-        ///this.searchManager.clearSearchMarkers();
+        document.getElementById('search-results').innerHTML = '';
+        this.searchManager.clearSearchMarkers();
         this.closeCurrentPopup();
         
         // Remover rota atual se existir
@@ -222,24 +280,6 @@ class UIController {
         this.mapManager.getMap().closePopup();
     }
 
-
-    async reverseGeocode(lat, lng) {
-        try {
-            const response = await fetch(`/api/search?q=${lat},${lng}&format=json`);
-            
-            if (!response.ok) {
-                throw new Error(`Erro HTTP: ${response.status}`);
-            }
-
-            const results = await response.json();
-            return results.length > 0 ? results[0] : null;
-
-        } catch (error) {
-            console.error('Erro na geocodificação reversa:', error);
-            throw error;
-        }
-    }
-
     /**
      * Manipula clique no mapa
      * @param {L.LeafletMouseEvent} event - Evento de clique
@@ -248,7 +288,7 @@ class UIController {
         const { lat, lng } = event.latlng;
         
         try {
-            const result = await this.reverseGeocode(lat, lng);/// this.searchManager.reverseGeocode(lat, lng);
+            const result = await this.searchManager.reverseGeocode(lat, lng);
             
             if (result) {
                 this.showLocationPopup(lat, lng, result.display_name);
@@ -283,7 +323,7 @@ class UIController {
             `)
             .openOn(this.mapManager.getMap());
     }
-    
+
 
     /**
      * Atualiza marcador de localização no mapa
@@ -363,7 +403,7 @@ class UIController {
     handleClearRoute() {
         this.stateManager.clearAll();
         this.clearCurrentRoute();
-        ///this.searchManager.clearSearchMarkers();
+        this.searchManager.clearSearchMarkers();
         this.clearAllMarkers();
         this.closeCurrentPopup();
         
@@ -382,7 +422,7 @@ class UIController {
      */
     clearAllMarkers() {
         this.poiManager.clearRouteMarkers();
-        ///this.searchManager.clearSearchMarkers();
+        this.searchManager.clearSearchMarkers();
     }
 
     /**
@@ -430,6 +470,46 @@ class UIController {
         routeInfoElement.classList.remove('hidden');
     }
 
+
+    /**
+     * Obtém localização do utilizador
+     */
+    async getUserLocation() {
+        if (!navigator.geolocation) {
+            this.showNotification('Geolocalização não suportada', 'warning');
+            return;
+        }
+
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                const lat = position.coords.latitude;
+                const lng = position.coords.longitude;
+
+                this.stateManager.setUserLocation({ lat, lng });
+                this.mapManager.setView(lat, lng, 13);
+
+                // Adicionar marcador da localização atual
+                this.poiManager.addCurrentLocationMarker(lat, lng, 'Sua localização atual');
+
+                // Preencher origem automaticamente
+                document.getElementById('start').value = 'Minha Localização';
+                this.stateManager.setStartLocation({
+                    lat,
+                    lng,
+                    address: 'Minha Localização'
+                });
+
+            },
+            (error) => {
+                console.log('Não foi possível obter localização:', error);
+                this.showNotification('Não foi possível obter sua localização', 'warning');
+            },
+            {
+                timeout: 5000,
+                maximumAge: 600000
+            }
+        );
+    }
 
 
     /**
@@ -493,16 +573,16 @@ class UIController {
     }
 
     /**
-     * Obtém instância do gerenciador de mapa
-     * @returns {MapManager} Gerenciador de mapa
+     * Obtém instância do manager de mapa
+     * @returns {MapManager} manager de mapa
      */
     getMapManager() {
         return this.mapManager;
     }
 
     /**
-     * Obtém instância do gerenciador de estado
-     * @returns {StateManager} Gerenciador de estado
+     * Obtém instância do manager de estado
+     * @returns {StateManager} manager de estado
      */
     getStateManager() {
         return this.stateManager;

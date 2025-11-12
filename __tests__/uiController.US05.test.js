@@ -37,8 +37,7 @@ describe("US05 — Limpeza e reinício da rota", () => {
         expect(uiController.stateManager.clearAll).toHaveBeenCalled();
         expect(uiController.routeManager.clearRoute).toHaveBeenCalled();
 
-        //TODO Enquanto nao temos a procura a funcionar
-        expect(uiController.searchManager.clearSearchMarkers).not.toHaveBeenCalled();
+        expect(uiController.searchManager.clearSearchMarkers).toHaveBeenCalled();
 
 
         expect(document.getElementById("start").value).toBe("");

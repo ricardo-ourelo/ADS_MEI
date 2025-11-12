@@ -100,6 +100,24 @@ export class ProfileManager {
         return this.profiles;
     }
 
+    /**
+     * Gera HTML da legenda dos perfis
+     * @returns {string} HTML da legenda
+     */
+    generateLegendHTML() {
+        let html = '<strong>Legenda de Rotas:</strong>';
+
+        Object.entries(this.profiles).forEach(([profileId, profile]) => {
+            html += `
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: ${profile.color}"></div>
+                    <span>${profile.icon} ${profile.name}</span>
+                </div>
+            `;
+        });
+
+        return html;
+    }
     
     /**
      * Valida se um perfil existe
