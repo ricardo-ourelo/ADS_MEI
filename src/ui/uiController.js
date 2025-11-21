@@ -28,8 +28,11 @@ class UIController {
         this.currentPopup = null;
         this.poiManager = null;
 
+        this.stops = [];        
+        this.stopMarkers = [];  
 
     }
+
 
 
     /**
@@ -105,6 +108,25 @@ class UIController {
     }
 
     /**
+     * Cria uma nova paragem intermédia a partir de um clique no mapa.
+     * Escolhe automaticamente o próximo índice livre (0,1,2,...)
+     */
+    addStopFromMap(lat, lng, displayName) {
+        if (!this.stops) {
+            this.stops = [];
+        }
+
+        let index = this.stops.findIndex(s => s === null || s === undefined);
+
+        if (index === -1) {
+            index = this.stops.length;
+        }
+
+        const field = `stop-${index}`;
+        this.handleLocationSelect(lat, lng, displayName, field);
+    }
+
+    /**
      * Configura listeners do state manager
      */
     setupStateListeners() {
@@ -138,19 +160,108 @@ class UIController {
      * Inicializa componentes da UI
      */
     initializeUI() {
-        // Adicionar legenda
-        const legendContent = this.profileManager.generateLegendHTML();
-        this.mapManager.addLegend(legendContent);
+    // Adicionar legenda
+    const legendContent = this.profileManager.generateLegendHTML();
+    this.mapManager.addLegend(legendContent);
 
-        // Popular dropdown de perfis
-        this.populateProfileDropdown();
+    // Popular dropdown de perfis
+    this.populateProfileDropdown();
 
-        // Adicionar controles de POI
-        //this.addPOIControls();
+    // Adicionar controles de POI
+    // this.addPOIControls();
 
-        // Carregar POIs iniciais
-        //this.loadInitialPOIs();
+    // Carregar POIs iniciais
+    // this.loadInitialPOIs();
+
+    this.initStopsUI();
     }
+
+    /**
+     * Inicializa UI das paragens intermédias
+     */
+    initStopsUI() {
+        const container = document.getElementById('stops-container');
+        const addBtn = document.getElementById('add-stop-btn');
+
+        if (!container || !addBtn) return;
+
+        addBtn.addEventListener('click', () => {
+            this.addStopRow(container);
+        });
+    }
+
+    /**
+     * Cria uma linha de paragem (input + botões)
+     * @param {HTMLElement} container - div #stops-container
+     * @param {number|null} forcedIndex - índice específico para a paragem (opcional)
+     */
+    addStopRow(container, forcedIndex = null) {
+
+        let index;
+        if (forcedIndex !== null && forcedIndex !== undefined) {
+            index = forcedIndex;
+            if (this.stops[index] === undefined) {
+                this.stops[index] = null;
+            }
+        } else {
+            index = this.stops.length;
+            if (this.stops[index] === undefined) {
+                this.stops[index] = null;
+            }
+        }
+
+        const row = document.createElement('div');
+        row.className = 'stop-row';
+        row.dataset.stopIndex = index;
+
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.placeholder = 'Paragem intermédia...';
+        input.dataset.stopIndex = index;
+        input.id = `stop-${index}`;
+
+        const searchBtn = document.createElement('button');
+        searchBtn.type = 'button';
+        searchBtn.textContent = '🔍';
+        searchBtn.className = 'stop-search-btn';
+
+        const removeBtn = document.createElement('button');
+        removeBtn.type = 'button';
+        removeBtn.textContent = 'X';
+        removeBtn.className = 'stop-remove-btn';
+
+        searchBtn.addEventListener('click', () => {
+            this.handleSearch(`stop-${index}`);
+        });
+
+        input.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                this.handleSearch(`stop-${index}`);
+            }
+        });
+
+        removeBtn.addEventListener('click', () => {
+            container.removeChild(row);
+            this.stops[index] = null;
+
+            if (this.stopMarkers && this.stopMarkers[index]) {
+                this.mapManager.removeMarker(this.stopMarkers[index]);
+                this.stopMarkers[index] = null;
+            }
+
+            if (this.stateManager.isReadyForRoute() && this.routeManager.hasActiveRoute()) {
+                this.handleCalculateRoute();
+            }
+        });
+
+        row.appendChild(input);
+        row.appendChild(searchBtn);
+        row.appendChild(removeBtn);
+        container.appendChild(row);
+    }
+
+
+
 
     /**
      * Popula dropdown de perfis
@@ -170,11 +281,16 @@ class UIController {
     }
 
     /**
-     * Manipula pesquisa de localização
-     * @param {string} field - Campo ('start' ou 'end')
+     * Manipula pesquisa de localização a partir do painel (lupa / Enter nos inputs).
+     * @param {string} field - Campo ('start', 'end' ou 'stop-<index>')
      */
     async handleSearch(field) {
         const input = document.getElementById(field);
+        if (!input) {
+            console.warn(`Input com id "${field}" não encontrado.`);
+            return;
+        }
+
         const query = input.value.trim();
 
         if (!query) {
@@ -184,15 +300,30 @@ class UIController {
 
         try {
             this.showLoading(field);
+
             const results = await this.searchManager.searchLocation(query);
-            this.displaySearchResults(results, field);
+
+            if (!results || results.length === 0) {
+                this.showNotification('Nenhum resultado encontrado para essa pesquisa', 'warning');
+                document.getElementById('search-results').innerHTML =
+                    '<div class="search-result-item">Nenhum resultado encontrado</div>';
+                return;
+            }
+
+            const best = results[0];
+            this.handleLocationSelect(best.lat, best.lon, best.display_name, field);
+
+            document.getElementById('search-results').innerHTML = '';
 
         } catch (error) {
+            console.error(error);
             this.showNotification('Erro ao pesquisar localização: ' + error.message, 'error');
         } finally {
             this.hideLoading(field);
+            this.searchManager.clearSearchMarkers();
         }
     }
+
 
     /**
      * Exibe resultados da pesquisa
@@ -242,31 +373,59 @@ class UIController {
      * @param {string} field - Campo ('start' ou 'end')
      */
     handleLocationSelect(lat, lng, displayName, field = null) {
-        const location = { lat, lng, address: displayName };
-        
-        if (!field) {
-            // Determinar campo baseado no estado atual
-            field = !this.stateManager.getStartLocation() ? 'start' : 'end';
+    const location = { lat, lng, address: displayName };
+    
+    if (!field) {
+        // se não for especificado, decide se é start ou end
+        field = !this.stateManager.getStartLocation() ? 'start' : 'end';
+    }
+    
+    if (field.startsWith('stop-')) {
+        const index = parseInt(field.split('-')[1], 10);
+        this.stops[index] = location;
+
+        let input = document.querySelector(`input[data-stop-index="${index}"]`);
+
+        // Se ainda não existir linha para esta paragem, cria uma linha com este índice
+        if (!input) {
+            const container = document.getElementById('stops-container');
+            if (container) {
+                this.addStopRow(container, index); // 👈 agora passamos o índice certo
+                input = document.querySelector(`input[data-stop-index="${index}"]`);
+            }
         }
-        
-        // Atualizar input
+
+        // Se agora já tivermos input, preenche com o endereço
+        if (input) {
+            input.value = displayName;
+        }
+
+        // Criar/atualizar marcador da paragem
+        this.updateStopMarker(index, location);
+
+    } else {
+        // Start / End normais (como já tinhas)
         document.getElementById(field).value = displayName;
         
-        // Atualizar estado
         if (field === 'start') {
             this.stateManager.setStartLocation(location);
         } else {
             this.stateManager.setEndLocation(location);
         }
-
-        // Fechar resultados e popups
-        document.getElementById('search-results').innerHTML = '';
-        this.searchManager.clearSearchMarkers();
-        this.closeCurrentPopup();
-        
-        // Remover rota atual se existir
-        this.clearCurrentRoute();
     }
+
+
+
+    // Fechar resultados e popups
+    document.getElementById('search-results').innerHTML = '';
+    this.searchManager.clearSearchMarkers();
+    this.closeCurrentPopup();
+    
+    // Limpar rota atual (vai ser recalculada)
+    this.clearCurrentRoute();
+    }
+
+
 
     /**
      * Fecha o popup atual do mapa
@@ -305,7 +464,9 @@ class UIController {
      * @param {string} displayName - Nome do local
      */
     showLocationPopup(lat, lng, displayName) {
-        this.closeCurrentPopup(); // Fechar popup anterior
+        this.closeCurrentPopup(); 
+        
+        const safeName = displayName.replace(/'/g, "\\'");
         
         this.currentPopup = L.popup()
             .setLatLng([lat, lng])
@@ -313,16 +474,20 @@ class UIController {
                 <div style="text-align: center;">
                     <strong>📍 Localização</strong><br>
                     <small>${displayName}</small><br><br>
-                    <button onclick="window.uiController.handleLocationSelect(${lat}, ${lng}, '${displayName.replace(/'/g, "\\'")}', 'start')">
+                    <button onclick="window.uiController.handleLocationSelect(${lat}, ${lng}, '${safeName}', 'start')">
                         🟢 Usar como Origem
                     </button>
-                    <button onclick="window.uiController.handleLocationSelect(${lat}, ${lng}, '${displayName.replace(/'/g, "\\'")}', 'end')">
+                    <button onclick="window.uiController.handleLocationSelect(${lat}, ${lng}, '${safeName}', 'end')">
                         🔴 Usar como Destino
+                    </button>
+                    <button onclick="window.uiController.addStopFromMap(${lat}, ${lng}, '${safeName}')">
+                        🔵 Usar como Paragem
                     </button>
                 </div>
             `)
             .openOn(this.mapManager.getMap());
     }
+
 
 
     /**
@@ -350,6 +515,34 @@ class UIController {
             calculateBtn.disabled = false;
         }
     }
+
+    
+    /**
+     * Cria ou atualiza o marcador de uma paragem intermédia
+     * @param {number} index - índice da paragem em this.stops
+     * @param {Object} location - {lat, lng, address}
+     */
+    updateStopMarker(index, location) {
+        if (!location) return;
+        if (!this.stopMarkers) this.stopMarkers = [];
+
+        // remover marcador anterior, se existir
+        const oldMarker = this.stopMarkers[index];
+        if (oldMarker) {
+            this.mapManager.removeMarker(oldMarker);
+        }
+
+        // usar POIManager com tipo 'stop'
+        const marker = this.poiManager.addRouteMarker(
+            'stop',
+            location.lat,
+            location.lng,
+            location.address
+        );
+
+        this.stopMarkers[index] = marker;
+    }
+
 
     /**
      * Remove a rota atual do mapa
@@ -381,11 +574,12 @@ class UIController {
         const start = this.stateManager.getStartLocation();
         const end = this.stateManager.getEndLocation();
         const profile = this.stateManager.getActiveProfile();
-        
+        const stops = this.stops.filter(Boolean); 
+
         try {
             this.showRouteLoading();
             
-            const routeData = await this.routeManager.calculateRoute(start, end, profile);
+            const routeData = await this.routeManager.calculateRoute(start, end, profile, stops);
             this.routeManager.displayRoute(routeData, profile);
             
             this.stateManager.setCurrentRoute(routeData);
@@ -396,6 +590,7 @@ class UIController {
             this.hideRouteLoading();
         }
     }
+
 
     /**
      * Manipula limpeza de rota
@@ -422,7 +617,24 @@ class UIController {
      */
     clearAllMarkers() {
         this.poiManager.clearRouteMarkers();
+
         this.searchManager.clearSearchMarkers();
+
+        if (this.stopMarkers && this.stopMarkers.length) {
+            this.stopMarkers.forEach(marker => {
+                if (marker) {
+                    this.mapManager.removeMarker(marker);
+                }
+            });
+        }
+        this.stopMarkers = [];
+
+        this.stops = [];
+
+        const stopsContainer = document.getElementById('stops-container');
+        if (stopsContainer) {
+            stopsContainer.innerHTML = '';
+        }
     }
 
     /**

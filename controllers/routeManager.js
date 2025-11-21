@@ -14,8 +14,8 @@ const APIClient = require('../models/apiClient');
  */
 const routeManager = {
   /**
-   * Calcula uma rota entre coordenadas de origem e destino.
-   * Endpoint: `/api/route?start=<lat,lng>&end=<lat,lng>&profile=<car|bike|foot>`
+   * Calcula uma rota entre coordenadas de origem e destino (com paragens intermédias opcionais).
+   * Endpoint: `/api/route?start=<lon,lat>&end=<lon,lat>&profile=<car|bike|foot>&waypoints=<lon,lat;lon,lat;...>`
    * @async
    * @function calculateRoute
    * @param {object} req - Pedido HTTP do Express.
@@ -24,7 +24,7 @@ const routeManager = {
    */
   calculateRoute: async (req, res) => {
     try {
-      const { start, end, profile = 'car' } = req.query;
+      const { start, end, profile = 'car', waypoints } = req.query;
 
       if (!start || !end) {
         return res.status(400).json({
@@ -32,9 +32,9 @@ const routeManager = {
         });
       }
 
-      console.log(`A calcular rota: ${profile} de ${start} para ${end}`);
+      console.log(`A calcular rota: profile=${profile} de ${start} para ${end} waypoints=${waypoints || 'nenhum'}`);
 
-      const route = await APIClient.calculateRoute(start, end, profile);
+      const route = await APIClient.calculateRoute(start, end, profile, waypoints);
       res.json(route);
     } catch (error) {
       console.error('Erro no cálculo da rota:', error);

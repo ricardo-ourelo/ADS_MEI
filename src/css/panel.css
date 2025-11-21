@@ -306,3 +306,34 @@
 .color-bicicleta { background: #27ae60; }
 .color-walking { background: #3498db; }
 
+.stop-row {
+    display: flex;
+    gap: 5px;
+    margin-bottom: 6px;
+}
+
+.stop-row input {
+    flex: 1;
+    padding: 8px;
+    border: 2px solid #ddd;
+    border-radius: 8px;
+    font-size: 14px;
+}
+
+.stop-row button {
+    padding: 8px 10px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.stop-search-btn {
+    background: #3498db;
+    color: white;
+}
+
+.stop-remove-btn {
+    background: #e74c3c;
+    color: white;
+}

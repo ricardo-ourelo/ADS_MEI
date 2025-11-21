@@ -6,7 +6,7 @@
  */
 
 /**
- * Gerencia Pontos de Interesse (POIs) e marcadores no mapa.
+ * Gere Pontos de Interesse (POIs) e marcadores no mapa.
  * @class
  */
 export class POIManager {
@@ -18,10 +18,9 @@ export class POIManager {
             start: null,
             end: null
         };
-
     }
 
-       /**
+    /**
      * Adiciona marcador da localização atual
      * @param {number} lat - Latitude
      * @param {number} lng - Longitude
@@ -42,34 +41,61 @@ export class POIManager {
     }
 
     /**
-     * Adiciona ou atualiza marcador de rota (origem/destino)
-     * @param {string} type - Tipo: 'start' ou 'end'
+     * Adiciona ou atualiza marcador de rota (origem/destino/paragem intermédia)
+     * @param {string} type - 'start' | 'end' | 'stop'
      * @param {number} lat - Latitude
      * @param {number} lng - Longitude
      * @param {string} address - Endereço para popup
      * @returns {L.Marker} Marcador criado/atualizado
      */
     addRouteMarker(type, lat, lng, address = '') {
-        // Remove marcador anterior se existir
-        if (this.routeMarkers[type]) {
+        let iconEmoji;
+        let popupText;
+
+        switch (type) {
+            case 'start':
+                iconEmoji = '🟢';
+                popupText = '📍 Origem';
+                break;
+            case 'end':
+                iconEmoji = '🔴';
+                popupText = '🎯 Destino';
+                break;
+            case 'stop':
+                iconEmoji = '🔵';
+                popupText = '🔵 Paragem intermédia';
+                break;
+            default:
+                iconEmoji = '📍';
+                popupText = 'Ponto';
+        }
+
+        const popupContent = address
+            ? `<strong>${popupText}</strong><br>${address}`
+            : popupText;
+
+        // Para start/end: remover marcador anterior se existir
+        if ((type === 'start' || type === 'end') && this.routeMarkers[type]) {
             this.map.removeLayer(this.routeMarkers[type]);
         }
 
-        const icon = type === 'start' ? '🟢' : '🔴';
-        const popupText = type === 'start' ? '📍 Origem' : '🎯 Destino';
-        const popupContent = address ? `<strong>${popupText}</strong><br>${address}` : popupText;
-
-        this.routeMarkers[type] = L.marker([lat, lng], {
+        const marker = L.marker([lat, lng], {
             icon: L.divIcon({
                 className: `route-marker ${type}-marker`,
-                html: icon,
+                html: iconEmoji,
                 iconSize: [25, 25],
                 iconAnchor: [12, 12]
             })
-        }).addTo(this.map).bindPopup(popupContent);
+        })
+            .addTo(this.map)
+            .bindPopup(popupContent);
 
+        // Só guardamos em routeMarkers se for start ou end
+        if (type === 'start' || type === 'end') {
+            this.routeMarkers[type] = marker;
+        }
 
-        return this.routeMarkers[type];
+        return marker;
     }
 
     /**
@@ -87,7 +113,7 @@ export class POIManager {
     }
 
     /**
-     * Remove todos os marcadores de rota
+     * Remove todos os marcadores de rota (apenas origem/destino)
      */
     clearRouteMarkers() {
         this.removeRouteMarker('start');
@@ -110,5 +136,4 @@ export class POIManager {
     hasBothRouteMarkers() {
         return this.routeMarkers.start !== null && this.routeMarkers.end !== null;
     }
-
 }

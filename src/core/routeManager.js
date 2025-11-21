@@ -18,20 +18,33 @@ export class RouteManager {
     }
 
     /**
-     * Calcula rota entre dois pontos
+     * Calcula rota entre dois pontos (com paragens intermédias opcionais)
      * @param {Object} start - Coordenadas de início {lat, lng}
      * @param {Object} end - Coordenadas de fim {lat, lng}
      * @param {string} profile - Perfil da rota
-     * @returns {Promise<Object>} Dados da rota calculada
+     * @param {Array<Object>} stops - Paragens intermédias [{lat, lng, address}, ...]
      */
-    async calculateRoute(start, end, profile) {
+    async calculateRoute(start, end, profile, stops = []) {
         const startStr = `${start.lng},${start.lat}`;
         const endStr = `${end.lng},${end.lat}`;
 
+        const waypointsStr = stops
+            .filter(Boolean)
+            .map(s => `${s.lng},${s.lat}`)
+            .join(';');
+
+        const params = new URLSearchParams();
+        params.set('start', startStr);
+        params.set('end', endStr);
+        params.set('profile', profile);
+        if (waypointsStr) {
+            params.set('waypoints', waypointsStr);
+        }
+
         try {
-            console.log(`Calculando rota: perfil=${profile}, start=${startStr}, end=${endStr}`);
-            
-            const response = await fetch(`/api/route?start=${startStr}&end=${endStr}&profile=${profile}`);
+            console.log(`Calculando rota: perfil=${profile}, start=${startStr}, end=${endStr}, stops=${waypointsStr}`);
+
+            const response = await fetch(`/api/route?${params.toString()}`);
             const routeData = await response.json();
 
             if (routeData.code !== 'Ok') {
@@ -46,6 +59,8 @@ export class RouteManager {
             throw error;
         }
     }
+
+
 
     /**
      * Exibe rota no mapa

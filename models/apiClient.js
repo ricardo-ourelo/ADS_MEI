@@ -250,21 +250,38 @@ class APIClient {
 
 
   /**
-   * Calcula uma rota entre dois pontos via API OSRM.
+   * Calcula uma rota entre dois pontos via API OSRM (com paragens intermédias opcionais).
    * @async
-   * @param {Object} start - Ponto inicial `{ lat, lng }`.
-   * @param {Object} end - Ponto final `{ lat, lng }`.
-   * @param {string} profile - Perfil de transporte ("car", "bike", "foot", etc.).
-   * @returns {Promise<Object>} Dados completos da rota (geoJSON, distância, tempo).
+   * @param {string} start - Ponto inicial no formato "lon,lat".
+   * @param {string} end - Ponto final no formato "lon,lat".
+   * @param {string} profile - Perfil de transporte ("car", "mota", "bicicleta", "walking", etc.).
+   * @param {string|null} [waypoints=null] - String "lon,lat;lon,lat;..." com paragens intermédias.
+   * @returns {Promise<Object>} Dados completos da rota (geoJSON, distância, tempo) com tempos ajustados ao perfil.
    */
-  static async calculateRoute(start, end, profile = 'car') {
+  static async calculateRoute(start, end, profile = 'car', waypoints = null) {
     const config = this.profileConfig[profile] || this.profileConfig.car;
     const osrmProfile = config.osrmProfile;
-    
-    const url = `${this.OSRM_BASE_URL}/route/v1/${osrmProfile}/${start};${end}`;
-    
+
+    // Construir lista de coordenadas: start ; (waypoints...) ; end
+    const coords = [start];
+
+    if (waypoints) {
+      const wpList = waypoints
+        .split(';')
+        .map(s => s.trim())
+        .filter(Boolean);
+
+      coords.push(...wpList);
+    }
+
+    coords.push(end);
+    const coordsStr = coords.join(';');
+
+    const url = `${this.OSRM_BASE_URL}/route/v1/${osrmProfile}/${coordsStr}`;
+
     console.log(`Calculando rota: ${profile} (OSRM: ${osrmProfile})`);
-    
+    console.log(` → Coordenadas: ${coordsStr}`);
+
     const response = await axios.get(url, {
       params: {
         overview: 'full',
@@ -274,10 +291,11 @@ class APIClient {
       }
     });
 
-    // Ajustar os tempos baseado no perfil
     const adjustedData = this.adjustRouteForProfile(response.data, profile);
     return adjustedData;
   }
+
+
 
   /**
    * Ajusta a duração e as anotações de uma rota de acordo com o perfil de transporte.
