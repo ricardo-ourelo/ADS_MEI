@@ -497,6 +497,11 @@ body.theme-sunset {
     --route-marker: #f43f5e;
 }
 
+/* Cor do handle (≡) conforme o tema */
+body[class*="theme-"] .stop-handle {
+    color: inherit !important;
+}
+
 .route-marker {
     cursor: pointer;
     text-shadow: 0 0 3px rgba(0,0,0,0.6);
@@ -505,5 +510,39 @@ body.theme-sunset {
 
 .route-marker:hover {
     transform: scale(1.25);
+}
+
+/* 
+   NOTIFICAÇÕES UI
+    */
+.ui-notification {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 14px;
+    margin-bottom: 10px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    animation: slideDown 0.25s ease-out;
+}
+
+.ui-notification-icon {
+    font-size: 18px;
+}
+
+.ui-notification-info { background: #3498db; color: white; }
+.ui-notification-success { background: #2ecc71; color: white; }
+.ui-notification-warning { background: #f39c12; color: #2c3e50; }
+.ui-notification-error { background: #e74c3c; color: white; }
+
+.fade-out {
+    opacity: 0;
+    transition: opacity .3s ease-in;
+}
+
+@keyframes slideDown {
+    from { transform: translateY(-12px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
 }
 

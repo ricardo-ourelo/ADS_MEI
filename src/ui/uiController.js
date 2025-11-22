@@ -300,58 +300,35 @@ class UIController {
      * Deve ser chamada após reorder, remoção ou adição.
      */
     reindexStops() {
-        const container = document.getElementById('stops-container');
-        if (!container) return;
-
-        const rows = Array.from(container.querySelectorAll('.stop-row'));
+        const rows = Array.from(document.querySelectorAll('#stops-container .stop-row'));
         const newStops = [];
-        const newStopMarkers = [];
 
+        // Guardar stops válidos
         rows.forEach((row, newIndex) => {
-            row.dataset.stopIndex = newIndex;
             const input = row.querySelector('input');
-            if (!input) return;
-
+            row.dataset.stopIndex = newIndex;
             input.dataset.stopIndex = newIndex;
             input.id = `stop-${newIndex}`;
 
-            // Reatribuir listeners corretos após reorder
-            const searchBtn = row.querySelector('.stop-search-btn');
-            const fieldId = `stop-${newIndex}`;
-
-            searchBtn.onclick = () => this.handleSearch(fieldId);
-
-            input.onkeypress = (e) => {
-                if (e.key === 'Enter') {
-                    this.handleSearch(fieldId);
-                }
-            };
-
-
-            // manter lat/lng se existirem nos data-attrs
             const lat = input.dataset.lat ? Number(input.dataset.lat) : null;
             const lng = input.dataset.lng ? Number(input.dataset.lng) : null;
-            const address = input.value && input.value.trim() !== '' ? input.value.trim() : (input.dataset.address || null);
-
-            if (lat != null && lng != null) {
-                newStops[newIndex] = { lat, lng, address };
-                // recriar marcador na nova ordem usando updateStopMarker
-                this.updateStopMarker(newIndex, { lat, lng, address });
-                newStopMarkers[newIndex] = this.stopMarkers[newIndex] || null;
-            } else {
-                newStops[newIndex] = null;
-                // limpar marcador antigo se existente
-                if (this.stopMarkers && this.stopMarkers[newIndex]) {
-                    this.mapManager.removeMarker(this.stopMarkers[newIndex]);
-                }
-                newStopMarkers[newIndex] = null;
-            }
+            const address = input.value || input.dataset.address || null;
+            newStops[newIndex] = (lat && lng) ? { lat, lng, address } : null;
         });
 
-        // substituir arrays
+        // Atualizar array
         this.stops = newStops;
-        this.stopMarkers = newStopMarkers;
+
+        // 🧹 Apagar todos marcas e redesenhar
+        this.poiManager.clearStopMarkers();
+
+        this.stops.forEach((stop, index) => {
+            if (stop) {
+                this.poiManager.addRouteMarker('stop', stop.lat, stop.lng, stop.address);
+            }
+        });
     }
+
 
 
     /**
@@ -493,8 +470,7 @@ class UIController {
 
             if (!results || results.length === 0) {
                 this.showNotification('Nenhum resultado encontrado para essa pesquisa', 'warning');
-                document.getElementById('search-results').innerHTML =
-                    '<div class="search-result-item">Nenhum resultado encontrado</div>';
+                document.getElementById('search-results').innerHTML = '';
                 return;
             }
 
@@ -575,35 +551,46 @@ class UIController {
         // se não for especificado, decide se é start ou end
         field = !this.stateManager.getStartLocation() ? 'start' : 'end';
     }
-    
-    if (field.startsWith('stop-')) {
-        const index = parseInt(field.split('-')[1], 10);
-        this.stops[index] = location;
 
-        let input = document.querySelector(`input[data-stop-index="${index}"]`);
+        if (field.startsWith('stop-')) {
+            const index = parseInt(field.split('-')[1], 10);
 
-        // Se ainda não existir linha para esta paragem, cria uma linha com este índice
-        if (!input) {
-            const container = document.getElementById('stops-container');
-            if (container) {
-                this.addStopRow(container, index);
-                input = document.querySelector(`input[data-stop-index="${index}"]`);
+            // Atualiza stops[] internamente
+            this.stops[index] = location;
+
+            // Garantir que existe input
+            let input = document.querySelector(`input[data-stop-index="${index}"]`);
+            if (!input) {
+                const container = document.getElementById('stops-container');
+                if (container) {
+                    this.addStopRow(container, index);
+                    input = document.querySelector(`input[data-stop-index="${index}"]`);
+                }
             }
+
+            // Preenche input
+            if (input) {
+                input.value = displayName;
+                input.dataset.lat = lat;
+                input.dataset.lng = lng;
+                input.dataset.address = displayName;
+            }
+
+            // Apagar marcador antigo (se existir) e criar novo
+            this.poiManager.removeStopMarker(index);
+            this.poiManager.addRouteMarker('stop', lat, lng, displayName);
+
+            // Fecha popup na hora
+            this.closeCurrentPopup();
+
+            // Recalcular rota se já existir origem e destino
+            if (this.stateManager.isReadyForRoute()) {
+                this.handleCalculateRoute();
+            }
+
+            return;
         }
-
-        // Se agora já tivermos input, preenche com o endereço
-        if (input) {
-            input.value = displayName;
-            input.dataset.lat = lat;
-            input.dataset.lng = lng;
-            input.dataset.address = displayName;
-        }
-
-
-        // Criar/atualizar marcador da paragem
-        this.updateStopMarker(index, location);
-
-    } else {
+        else {
         // Start / End normais (como já tinhas)
         document.getElementById(field).value = displayName;
         
@@ -715,34 +702,6 @@ class UIController {
             calculateBtn.disabled = false;
         }
     }
-
-    
-    /**
-     * Cria ou atualiza o marcador de uma paragem intermédia
-     * @param {number} index - índice da paragem em this.stops
-     * @param {Object} location - {lat, lng, address}
-     */
-    updateStopMarker(index, location) {
-        if (!location) return;
-        if (!this.stopMarkers) this.stopMarkers = [];
-
-        // remover marcador anterior, se existir
-        const oldMarker = this.stopMarkers[index];
-        if (oldMarker) {
-            this.mapManager.removeMarker(oldMarker);
-        }
-
-        // usar POIManager com tipo 'stop'
-        const marker = this.poiManager.addRouteMarker(
-            'stop',
-            location.lat,
-            location.lng,
-            location.address
-        );
-
-        this.stopMarkers[index] = marker;
-    }
-
 
     /**
      * Remove a rota atual do mapa
@@ -969,22 +928,41 @@ class UIController {
     }
 
     /**
-     * Exibe notificação
-     * @param {string} message - Mensagem
+     * Exibe notificação visual no painel
+     * @param {string} message - Mensagem da notificação
      * @param {string} type - Tipo ('info', 'success', 'warning', 'error')
      */
     showNotification(message, type = 'info') {
-        // Implementação simplificada - pode ser expandida com uma lib de notificações
-        const typeIcons = {
+        const icons = {
             'info': 'ℹ️',
             'success': '✅',
             'warning': '⚠️',
             'error': '❌'
         };
-        console.log(`${message}`)
-        
-        // alert(`${typeIcons[type] || 'ℹ️'} ${message}`);
+
+        // Se já existir uma notificação na tela, remove
+        const prev = document.querySelector('.ui-notification');
+        if (prev) prev.remove();
+
+        // Criar container
+        const notif = document.createElement('div');
+        notif.className = `ui-notification ui-notification-${type}`;
+        notif.innerHTML = `
+        <span class="ui-notification-icon">${icons[type]}</span>
+        <span class="ui-notification-message">${message}</span>
+    `;
+
+        // Adicionar ao painel lateral (aside)
+        const panel = document.querySelector('#page-map aside');
+        panel.insertBefore(notif, panel.firstChild);
+
+        // Remover automaticamente após 3.2s
+        setTimeout(() => {
+            notif.classList.add('fade-out');
+            setTimeout(() => notif.remove(), 300);
+        }, 3200);
     }
+
 
     /**
      * Obtém instância do manager de mapa

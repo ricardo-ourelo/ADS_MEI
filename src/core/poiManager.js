@@ -1,36 +1,60 @@
 /**
  * @file poiManager.js
- * @description Classe responsável por gerir Pontos de Interesse (POIs), marcadores de rota
- * e localização atual no mapa Leaflet.
- * @module core/poiManager
+ * @description
+ * Classe responsável por gerir marcadores no mapa Leaflet, incluindo:
+ * - Localização atual do utilizador
+ * - Marcadores da rota (origem, destino, paragens intermédias)
+ * - Remoção e controle de marcadores
+ *
+ * NOTA: Esta classe não calcula rotas; apenas gere a visualização de pins.
  */
 
-/**
- * Gere Pontos de Interesse (POIs) e marcadores no mapa.
- * @class
- */
 export class POIManager {
+    /**
+     * Cria instância do gestor de POIs.
+     * @param {L.Map} map - Instância do Leaflet Map.
+     */
     constructor(map) {
+        /** @type {L.Map} */
         this.map = map;
+
+        /** @type {L.Marker|null} */
         this.currentLocationMarker = null;
+
+        /**
+         * POIs arbitrários (não relacionados com a rota)
+         * @type {Map<string, L.Marker>}
+         */
         this.poiMarkers = new Map();
+
+        /**
+         * Marcadores principais da rota: origem e destino
+         * @type {{start: L.Marker|null, end: L.Marker|null}}
+         */
         this.routeMarkers = {
             start: null,
             end: null
         };
+
+        /**
+         * Lista de marcadores de paragens intermédias (podem conter null quando removidos)
+         * @type {Array<L.Marker|null>}
+         */
+        this.stopMarkers = [];
     }
 
     /**
-     * Adiciona marcador da localização atual
+     * Adiciona um marcador para a localização atual do utilizador.
+     * Remove o marcador anterior, caso exista.
+     *
      * @param {number} lat - Latitude
      * @param {number} lng - Longitude
-     * @param {string} popupText - Texto do popup
-     * @returns {L.Marker} Marcador criado
+     * @param {string} [popupText='📍 Sua localização atual'] - Texto do popup
+     * @returns {L.Marker} - Marcador criado
      */
-    addCurrentLocationMarker(lat, lng, popupText = 'Sua localização atual') {
-        if (this.currentLocationMarker) {
+    addCurrentLocationMarker(lat, lng, popupText = '📍 Sua localização atual') {
+        if (this.currentLocationMarker)
             this.map.removeLayer(this.currentLocationMarker);
-        }
 
         this.currentLocationMarker = L.marker([lat, lng])
             .addTo(this.map)
@@ -41,35 +65,37 @@ export class POIManager {
     }
 
     /**
-     * Adiciona ou atualiza marcador de rota (origem/destino/paragem intermédia)
-     * @param {string} type - 'start' | 'end' | 'stop'
+     * Adiciona um marcador associado à rota:
+     * - 'start'  → Origem
+     * - 'stop'   → Paragem intermédia
+     * - 'end'    → Destino
+     *
+     * Se o tipo for origem ou destino, substitui automaticamente o marcador anterior.
+     *
+     * @param {'start'|'stop'|'end'} type - Tipo de marcador a criar
      * @param {number} lat - Latitude
      * @param {number} lng - Longitude
-     * @param {string} address - Endereço para popup
-     * @returns {L.Marker} Marcador criado/atualizado
+     * @param {string} [address=''] - Texto exibido no popup
+     * @returns {L.Marker} - Marcador criado
      */
     addRouteMarker(type, lat, lng, address = '') {
-
-        const markerColor = getComputedStyle(document.body).getPropertyValue('--route-marker').trim();
-
         const icons = {
             start: '🟢',
-            end: '🔴',
-            stop: '🔵'
+            stop: '🔵',
+            end: '🔴'
         };
 
-        const popupText = {
-            start: '📍 Origem',
-            end: '🎯 Destino',
-            stop: '🔵 Paragem intermédia'
+        const popupLabel = {
+            start: `📍 Origem`,
+            stop: `🔵 Paragem intermédia`,
+            end: `🎯 Destino`
         };
 
-        // Para popups
         const popupContent = address
-            ? `<strong>${popupText[type]}</strong><br>${address}`
-            : popupText[type];
+            ? `<strong>${popupLabel[type]}</strong><br>${address}`
+            : popupLabel[type];
 
-        // Remover marcador anterior se existir (start/end)
+        // Origem e Destino substituem marcador anterior
         if ((type === 'start' || type === 'end') && this.routeMarkers[type]) {
             this.map.removeLayer(this.routeMarkers[type]);
         }
@@ -77,26 +103,47 @@ export class POIManager {
         const marker = L.marker([lat, lng], {
             icon: L.divIcon({
                 className: `route-marker ${type}-marker`,
-                html: `<div style="color:${markerColor}; font-size: 26px;">${icons[type]}</div>`,
+                html: `<div style="font-size: 26px;">${icons[type]}</div>`,
                 iconSize: [28, 28],
                 iconAnchor: [14, 14]
             })
-        })
-            .addTo(this.map)
-            .bindPopup(popupContent);
+        }).addTo(this.map).bindPopup(popupContent);
 
         if (type === 'start' || type === 'end') {
             this.routeMarkers[type] = marker;
+        } else { // Tipo 'stop'
+            this.stopMarkers.push(marker);
         }
 
         return marker;
     }
 
+    /**
+     * Remove uma paragem intermédia pelo índice, caso exista.
+     * @param {number} index - Índice da paragem a remover.
+     */
+    removeStopMarker(index) {
+        if (this.stopMarkers[index]) {
+            this.map.removeLayer(this.stopMarkers[index]);
+            this.stopMarkers[index] = null;
+        }
+    }
 
     /**
-     * Remove marcador de rota
-     * @param {string} type - Tipo: 'start' ou 'end'
-     * @returns {boolean} True se removido com sucesso
+     * Remove todos os marcadores de paragens intermédias.
+     * Utilizado após edição/remoção múltipla ou reordenação.
+     */
+    clearStopMarkers() {
+        this.stopMarkers.forEach(marker => {
+            if (marker) this.map.removeLayer(marker);
+        });
+        this.stopMarkers = [];
+    }
+
+    /**
+     * Remove marcador de origem ou destino, caso exista.
+     * @param {'start'|'end'} type - Tipo de marcador a remover
+     * @returns {boolean} - true se removido, false caso inexistente
      */
     removeRouteMarker(type) {
         if (this.routeMarkers[type]) {
@@ -108,7 +155,8 @@ export class POIManager {
     }
 
     /**
-     * Remove todos os marcadores de rota (apenas origem/destino)
+     * Remove ambos os marcadores principais da rota (origem e destino).
+     * Mantém as paragens.
      */
     clearRouteMarkers() {
         this.removeRouteMarker('start');
@@ -116,19 +164,10 @@ export class POIManager {
     }
 
     /**
-     * Obtém marcador de rota
-     * @param {string} type - Tipo: 'start' ou 'end'
-     * @returns {L.Marker|null} Marcador
-     */
-    getRouteMarker(type) {
-        return this.routeMarkers[type];
-    }
-
-    /**
-     * Verifica se ambos marcadores de rota existem
-     * @returns {boolean} True se ambos existem
+     * Verifica se a rota está completa visualmente (origem + destino colocados).
+     * @returns {boolean} - true se ambos os marcadores existem
      */
     hasBothRouteMarkers() {
-        return this.routeMarkers.start !== null && this.routeMarkers.end !== null;
+        return !!(this.routeMarkers.start && this.routeMarkers.end);
     }
 }
