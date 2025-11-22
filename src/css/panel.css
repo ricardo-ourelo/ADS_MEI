@@ -546,3 +546,31 @@ body[class*="theme-"] .stop-handle {
     to { transform: translateY(0); opacity: 1; }
 }
 
+/* Estilo base do texto de ajuste */
+.route-adjust-note {
+    font-size: 0.8em;
+    color: var(--adjust-note-color);
+    opacity: 0.9;
+}
+
+/* -------- Temas ---------- */
+body.theme-ocean {
+    --adjust-note-color: #e7faff;
+}
+
+body.theme-light {
+    --adjust-note-color: #333;
+}
+
+body.theme-dark {
+    --adjust-note-color: #f5f5f5;
+}
+
+body.theme-forest {
+    --adjust-note-color: #d2ffe5;
+}
+
+body.theme-sunset {
+    --adjust-note-color: #fff7ed;
+}
+

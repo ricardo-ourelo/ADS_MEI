@@ -834,7 +834,7 @@ class UIController {
                 <strong>🎯 Perfil:</strong> ${routeInfo.profileName}
             </div>
             ${routeInfo.originalDuration ? `
-            <div class="info-item" style="font-size: 0.8em; color: #666;">
+            <div class="-item route-adjust-note" >
                 <em>* Tempo ajustado para ${routeInfo.profileName}</em>
             </div>
             ` : ''}
