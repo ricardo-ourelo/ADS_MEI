@@ -301,34 +301,209 @@
 .color-bicicleta { background: #27ae60; }
 .color-walking { background: #3498db; }
 
+/* Linha da paragem: alinhamento uniforme */
 .stop-row {
     display: flex;
-    gap: 5px;
-    margin-bottom: 6px;
+    align-items: center;
+    width: 100%;
+    gap: 6px;
 }
 
+/* Handle alinhado à esquerda */
+.stop-handle {
+    width: 18px;
+    text-align: center;
+    cursor: grab;
+    font-weight: bold;
+    color: #444;
+    user-select: none;
+    flex-shrink: 0;
+
+    /* NOVO: puxa o handle para fora e alinha o input */
+    margin-left: -24px;
+}
+
+
+/* Input igual aos de origem e destino */
 .stop-row input {
     flex: 1;
-    padding: 8px;
+    padding: 12px;
     border: 2px solid #ddd;
     border-radius: 8px;
     font-size: 14px;
+    box-sizing: border-box;
 }
 
-.stop-row button {
-    padding: 8px 10px;
-    border: none;
+/* Botões compactos e profissionais */
+.stop-search-btn,
+.stop-remove-btn {
+    width: 34px;
+    height: 34px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
     border-radius: 8px;
     cursor: pointer;
-    font-size: 14px;
+    border: none;
+    flex-shrink: 0;
+    font-size: 16px;
 }
 
+/* Lupa */
 .stop-search-btn {
     background: #3498db;
     color: white;
+    transition: background 0.2s ease;
 }
 
-.stop-remove-btn {
-    background: #e74c3c;
-    color: white;
+.stop-search-btn:hover {
+    background: #2176b5;
 }
+
+/* Remover (ícone mais elegante) */
+.stop-remove-btn {
+    background: #ff6b6b;
+    color: white;
+    font-weight: bold;
+    transition: background 0.2s ease;
+}
+
+.stop-remove-btn:hover {
+    background: #d94141;
+    transform: scale(1.05);
+}
+
+/* ===== Seletor de tema ===== */
+.theme-selector {
+    margin: 10px 0 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.theme-selector label {
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+.theme-selector select {
+    padding: 8px 10px;
+    border-radius: 8px;
+    border: 2px solid #ddd;
+    font-size: 14px;
+}
+.theme-selector {
+    margin: 10px 0 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.theme-selector label {
+    font-weight: 600;
+}
+
+/* 
+   TEMAS DO PAINEL
+   (aplicados ao <body>)
+    */
+
+/*  OCEAN (Padrão)  */
+body.theme-ocean #page-map aside {
+    background: #00bcd4 !important;
+    color: #ffffff;
+}
+body.theme-ocean .theme-selector label,
+body.theme-ocean .input-group label,
+body.theme-ocean .profile-selector label {
+    color: #ffffff;
+}
+
+/*  TEMA CLARO  */
+body.theme-light #page-map aside {
+    background: #f5f5f5 !important;
+    color: #2c3e50;
+}
+body.theme-light .theme-selector label,
+body.theme-light .input-group label,
+body.theme-light .profile-selector label {
+    color: #2c3e50;
+}
+
+/*  TEMA ESCURO  */
+body.theme-dark #page-map aside {
+    background: #111827 !important;
+    color: #e5e7eb;
+}
+body.theme-dark .theme-selector label,
+body.theme-dark .input-group label,
+body.theme-dark .profile-selector label {
+    color: #e5e7eb;
+}
+
+/*  TEMA FLORESTA  */
+body.theme-forest #page-map aside {
+    background: #064e3b !important;
+    color: #ecfdf5;
+}
+body.theme-forest .theme-selector label,
+body.theme-forest .input-group label,
+body.theme-forest .profile-selector label {
+    color: #ecfdf5;
+}
+
+/*  TEMA PÔR DO SOL  */
+body.theme-sunset #page-map aside {
+    background: linear-gradient(180deg, #f97316 0%, #ec4899 100%) !important;
+    color: #fff7ed;
+}
+body.theme-sunset .theme-selector label,
+body.theme-sunset .input-group label,
+body.theme-sunset .profile-selector label {
+    color: #fff7ed;
+}
+
+/* 
+   VARIÁVEIS DE TEMA (para o mapa)
+*/
+
+body.theme-ocean {
+    --route-color: #0077ff;
+    --route-outline: #ffffff;
+    --route-marker: #0077ff;
+}
+
+body.theme-light {
+    --route-color: #0055aa;
+    --route-outline: #ffffff;
+    --route-marker: #2980b9;
+}
+
+body.theme-dark {
+    --route-color: #4ade80; /* verde neon */
+    --route-outline: #111827;
+    --route-marker: #22c55e;
+}
+
+body.theme-forest {
+    --route-color: #10b981; /* verde forte */
+    --route-outline: #064e3b;
+    --route-marker: #22c55e;
+}
+
+body.theme-sunset {
+    --route-color: #fb923c; /* coral/laranja */
+    --route-outline: #ec4899;
+    --route-marker: #f43f5e;
+}
+
+.route-marker {
+    cursor: pointer;
+    text-shadow: 0 0 3px rgba(0,0,0,0.6);
+    transition: transform 0.15s ease;
+}
+
+.route-marker:hover {
+    transform: scale(1.25);
+}
+

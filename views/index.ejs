@@ -23,8 +23,19 @@
             <img src="images/map-marker.svg" alt="Happy" />
             <h2>Escolha um lugar no mapa</h2>
         </header>
+            <!-- NOVO: seletor de tema -->
+            <div class="theme-selector">
+                <label for="theme-select">Tema do painel:</label>
+                <select id="theme-select">
+                    <option value="ocean">🌊 Ocean (Padrão)</option>
+                    <option value="light">☀️ Claro</option>
+                    <option value="dark">🌙 Escuro</option>
+                    <option value="forest">🌲 Floresta</option>
+                    <option value="sunset">🌅 Pôr do Sol</option>
+                </select>
+            </div>
 
-        <!-- Campos panel lateral-->
+            <!-- Campos panel lateral-->
         <div class="search-form">
             <div class="input-group">
                 <label for="start">Origem:</label>
@@ -86,6 +97,9 @@
 </div>
 <!-- Leaflet JS -->
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<!-- SortableJS: apenas para tornar paragens reordenáveis -->
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 
 <script type="module" src="ui/uiController.js"></script>
 

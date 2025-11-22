@@ -66,34 +66,40 @@ export class RouteManager {
      * Exibe rota no mapa
      * @param {Object} routeData - Dados da rota retornado da api
      * @param {string} profile - Perfil da rota
+     * @param {string} customColor - Cor opcional vinda do tema
      */
-    displayRoute(routeData, profile) {
+    displayRoute(routeData, profile, customColor = null) {
         // Remove rota anterior
         this.clearRoute();
 
         const route = routeData.routes[0];
         const routeCoordinates = route.geometry.coordinates.map(coord => [coord[1], coord[0]]);
-        const color = this.profileManager.getProfileColor(profile);
+
+        // Cor prioritária vem do tema (CSS variable)
+        const themeColor = getComputedStyle(document.body).getPropertyValue('--route-color').trim();
+
+        const color = customColor || themeColor || this.profileManager.getProfileColor(profile);
 
         this.routeLayer = L.polyline(routeCoordinates, {
             color: color,
             weight: 6,
-            opacity: 0.8,
+            opacity: 0.9,
             lineJoin: 'round',
             className: `route-${profile}`
         }).addTo(this.map);
 
         // Adicionar popup informativo
         this.routeLayer.bindPopup(`
-            <div style="text-align: center;">
-                <strong>🗺️ Rota ${this.profileManager.getProfileName(profile)}</strong><br>
-                <small>Clique no mapa para fechar</small>
-            </div>
-        `);
+        <div style="text-align: center;">
+            <strong>🗺️ Rota ${this.profileManager.getProfileName(profile)}</strong><br>
+            <small>Clique no mapa para fechar</small>
+        </div>
+    `);
 
         // Ajustar visualização para mostrar toda a rota
         this.map.fitBounds(this.routeLayer.getBounds(), { padding: [20, 20] });
     }
+
 
     /**
      * Remove rota atual do mapa

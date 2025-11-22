@@ -95,12 +95,15 @@ class UIController {
          document.getElementById('profile').addEventListener('change', (e) => {
              this.stateManager.setActiveProfile(e.target.value);
          });
-        
-        // Handler global para seleção de localização
+
+        // Handler global para seleção de localização via markers/popups de pesquisa
+        // usa window.__lastSearchField para saber onde aplicar (se existir)
         window.selectSearchLocation = (lat, lng, displayName) => {
-            this.handleLocationSelect(lat, lng, displayName);
+            const field = window.__lastSearchField || null;
+            this.handleLocationSelect(lat, lng, displayName, field);
         };
-        
+
+
         // Handler de clique no mapa
         this.mapManager.addClickHandler((e) => {
             this.handleMapClick(e);
@@ -174,6 +177,8 @@ class UIController {
     // this.loadInitialPOIs();
 
     this.initStopsUI();
+    this.initThemeSelector();
+
     }
 
     /**
@@ -188,7 +193,166 @@ class UIController {
         addBtn.addEventListener('click', () => {
             this.addStopRow(container);
         });
+        // Depois de configurar botões, inicializa Sortable (irá encontrar as rows se existirem)
+        this.initStopsSortable();
     }
+
+    /**
+     * Inicializa o seletor de tema do painel
+     */
+    initThemeSelector() {
+        const select = document.getElementById('theme-select');
+        if (!select) return;
+
+        // Tema guardado ou padrão
+        const savedTheme = localStorage.getItem('panelTheme') || 'ocean';
+
+        // Remove classes antigas e aplica a guardada
+        this.applyTheme(savedTheme);
+
+        // Atualiza o select
+        select.value = savedTheme;
+
+        // Listener de mudança
+        select.addEventListener('change', (e) => {
+            const newTheme = e.target.value;
+            this.applyTheme(newTheme);
+            localStorage.setItem('panelTheme', newTheme);
+        });
+    }
+
+    /**
+     * Aplica uma classe de tema ao <body>
+     * @param {string} themeId - ex: 'ocean', 'dark'
+     */
+    applyTheme(themeId) {
+        const body = document.body;
+
+        // Remover temas antigos
+        body.classList.forEach(cls => {
+            if (cls.startsWith('theme-')) {
+                body.classList.remove(cls);
+            }
+        });
+
+        // Adicionar novo tema
+        body.classList.add(`theme-${themeId}`);
+
+        // 🔥 Redesenhar rota com a nova cor do tema, se existir uma rota ativa
+        const route = this.stateManager.getCurrentRoute();
+        if (route && this.stateManager.isReadyForRoute()) {
+            const profile = this.stateManager.getActiveProfile();
+            const newColor = getComputedStyle(document.body).getPropertyValue('--route-color').trim();
+            this.routeManager.displayRoute(route, profile, newColor);
+        }
+
+        // Atualizar cor dos marcadores também
+        this.updateAllMarkersTheme();
+    }
+
+    /**
+     * Atualiza os marcadores já existentes para refletir o novo tema
+     */
+    updateAllMarkersTheme() {
+        // Reaplicar origem e destino se existirem
+        const start = this.stateManager.getStartLocation();
+        if (start) this.updateLocationMarker('start', start);
+
+        const end = this.stateManager.getEndLocation();
+        if (end) this.updateLocationMarker('end', end);
+
+        // Reaplicar paragens se existirem
+        this.stops.forEach((stop, index) => {
+            if (stop) this.updateStopMarker(index, stop);
+        });
+    }
+
+
+    /**
+     * Inicializa Sortable apenas para as paragens (stops)
+     * Não mexe em start/end — garante compatibilidade com a lógica existente.
+     */
+    initStopsSortable() {
+        const container = document.getElementById('stops-container');
+        if (!container || typeof Sortable === 'undefined') return;
+
+        // se já existir, destrói e recria (evita duplicados ao reinicializar)
+        if (this._stopsSortable) {
+            try { this._stopsSortable.destroy(); } catch(e){/*ignore*/ }
+        }
+
+        // usa um handle específico para não interferir com clique nos inputs
+        this._stopsSortable = Sortable.create(container, {
+            handle: '.stop-handle',
+            animation: 150,
+            onEnd: (evt) => {
+                // reindexar stops e recalcular rota se aplicável
+                this.reindexStops();
+                if (this.stateManager.isReadyForRoute()) {
+                    this.handleCalculateRoute();
+                }
+            }
+        });
+    }
+
+    /**
+     * Reindexa os inputs de paragens para stop-0, stop-1... e actualiza this.stops e marcadores.
+     * Deve ser chamada após reorder, remoção ou adição.
+     */
+    reindexStops() {
+        const container = document.getElementById('stops-container');
+        if (!container) return;
+
+        const rows = Array.from(container.querySelectorAll('.stop-row'));
+        const newStops = [];
+        const newStopMarkers = [];
+
+        rows.forEach((row, newIndex) => {
+            row.dataset.stopIndex = newIndex;
+            const input = row.querySelector('input');
+            if (!input) return;
+
+            input.dataset.stopIndex = newIndex;
+            input.id = `stop-${newIndex}`;
+
+            // Reatribuir listeners corretos após reorder
+            const searchBtn = row.querySelector('.stop-search-btn');
+            const fieldId = `stop-${newIndex}`;
+
+            searchBtn.onclick = () => this.handleSearch(fieldId);
+
+            input.onkeypress = (e) => {
+                if (e.key === 'Enter') {
+                    this.handleSearch(fieldId);
+                }
+            };
+
+
+            // manter lat/lng se existirem nos data-attrs
+            const lat = input.dataset.lat ? Number(input.dataset.lat) : null;
+            const lng = input.dataset.lng ? Number(input.dataset.lng) : null;
+            const address = input.value && input.value.trim() !== '' ? input.value.trim() : (input.dataset.address || null);
+
+            if (lat != null && lng != null) {
+                newStops[newIndex] = { lat, lng, address };
+                // recriar marcador na nova ordem usando updateStopMarker
+                this.updateStopMarker(newIndex, { lat, lng, address });
+                newStopMarkers[newIndex] = this.stopMarkers[newIndex] || null;
+            } else {
+                newStops[newIndex] = null;
+                // limpar marcador antigo se existente
+                if (this.stopMarkers && this.stopMarkers[newIndex]) {
+                    this.mapManager.removeMarker(this.stopMarkers[newIndex]);
+                }
+                newStopMarkers[newIndex] = null;
+            }
+        });
+
+        // substituir arrays
+        this.stops = newStops;
+        this.stopMarkers = newStopMarkers;
+    }
+
 
     /**
      * Cria uma linha de paragem (input + botões)
@@ -227,7 +391,8 @@ class UIController {
 
         const removeBtn = document.createElement('button');
         removeBtn.type = 'button';
-        removeBtn.textContent = 'X';
+        removeBtn.textContent = '✖';
+
         removeBtn.className = 'stop-remove-btn';
 
         searchBtn.addEventListener('click', () => {
@@ -241,23 +406,43 @@ class UIController {
         });
 
         removeBtn.addEventListener('click', () => {
+            // Remover marcador associado antes de reindexar
+            const i = index;
+            if (this.stopMarkers && this.stopMarkers[i]) {
+                this.mapManager.removeMarker(this.stopMarkers[i]);
+                this.stopMarkers[i] = null;
+            }
+            // Remover linha da UI
             container.removeChild(row);
-            this.stops[index] = null;
+            this.reindexStops();
 
-            if (this.stopMarkers && this.stopMarkers[index]) {
-                this.mapManager.removeMarker(this.stopMarkers[index]);
-                this.stopMarkers[index] = null;
+            // limpar marcador relacionado, se existia
+            if (this.stopMarkers && this.stopMarkers.length) {
+                // reindexStops já removeu marcadores obsoletos
             }
 
+            // recalcular rota se necessário
             if (this.stateManager.isReadyForRoute() && this.routeManager.hasActiveRoute()) {
                 this.handleCalculateRoute();
             }
         });
 
+        // handle visual para arrastar (necessário para Sortable.handle)
+        const handle = document.createElement('span');
+        handle.className = 'stop-handle';
+        handle.textContent = '≡';
+        handle.title = 'Arrastar para reordenar';
+
+        // inserir handle primeiro no row
+        row.appendChild(handle);
         row.appendChild(input);
         row.appendChild(searchBtn);
         row.appendChild(removeBtn);
         container.appendChild(row);
+
+        // Após criar a row, (re)inicializar Sortable para registar o novo elemento
+        this.initStopsSortable();
+
     }
 
 
@@ -300,6 +485,9 @@ class UIController {
 
         try {
             this.showLoading(field);
+
+            // guardar o campo actual para que os botões dos markers saibam para onde preencher
+            window.__lastSearchField = field;
 
             const results = await this.searchManager.searchLocation(query);
 
@@ -346,11 +534,21 @@ class UIController {
             `;
 
             item.onclick = () => {
+                const input = document.getElementById(field);
+                if (input) {
+                    input.value = result.display_name;
+                    input.dataset.lat = result.lat;
+                    input.dataset.lng = result.lon;
+                    input.dataset.address = result.display_name;
+                }
+
                 this.handleLocationSelect(result.lat, result.lon, result.display_name, field);
+
                 resultsContainer.innerHTML = '';
                 this.searchManager.clearSearchMarkers();
-                this.closeCurrentPopup(); // Fechar popup ao selecionar
+                this.closeCurrentPopup();
             };
+
 
             resultsContainer.appendChild(item);
         });
@@ -361,6 +559,7 @@ class UIController {
             this.closeCurrentPopup(); // Fechar popup ao selecionar
         });
     }
+
 
     /**
      * Manipula seleção de localização
@@ -395,7 +594,11 @@ class UIController {
         // Se agora já tivermos input, preenche com o endereço
         if (input) {
             input.value = displayName;
+            input.dataset.lat = lat;
+            input.dataset.lng = lng;
+            input.dataset.address = displayName;
         }
+
 
         // Criar/atualizar marcador da paragem
         this.updateStopMarker(index, location);
@@ -577,8 +780,10 @@ class UIController {
             this.showRouteLoading();
             
             const routeData = await this.routeManager.calculateRoute(start, end, profile, stops);
-            this.routeManager.displayRoute(routeData, profile);
-            
+            const routeColor = getComputedStyle(document.body).getPropertyValue('--route-color').trim();
+            this.routeManager.displayRoute(routeData, profile, routeColor);
+
+
             this.stateManager.setCurrentRoute(routeData);
             
         } catch (error) {

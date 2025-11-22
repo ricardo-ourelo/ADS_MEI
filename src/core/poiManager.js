@@ -49,32 +49,27 @@ export class POIManager {
      * @returns {L.Marker} Marcador criado/atualizado
      */
     addRouteMarker(type, lat, lng, address = '') {
-        let iconEmoji;
-        let popupText;
 
-        switch (type) {
-            case 'start':
-                iconEmoji = '🟢';
-                popupText = '📍 Origem';
-                break;
-            case 'end':
-                iconEmoji = '🔴';
-                popupText = '🎯 Destino';
-                break;
-            case 'stop':
-                iconEmoji = '🔵';
-                popupText = '🔵 Paragem intermédia';
-                break;
-            default:
-                iconEmoji = '📍';
-                popupText = 'Ponto';
-        }
+        const markerColor = getComputedStyle(document.body).getPropertyValue('--route-marker').trim();
 
+        const icons = {
+            start: '🟢',
+            end: '🔴',
+            stop: '🔵'
+        };
+
+        const popupText = {
+            start: '📍 Origem',
+            end: '🎯 Destino',
+            stop: '🔵 Paragem intermédia'
+        };
+
+        // Para popups
         const popupContent = address
-            ? `<strong>${popupText}</strong><br>${address}`
-            : popupText;
+            ? `<strong>${popupText[type]}</strong><br>${address}`
+            : popupText[type];
 
-        // Para start/end: remover marcador anterior se existir
+        // Remover marcador anterior se existir (start/end)
         if ((type === 'start' || type === 'end') && this.routeMarkers[type]) {
             this.map.removeLayer(this.routeMarkers[type]);
         }
@@ -82,21 +77,21 @@ export class POIManager {
         const marker = L.marker([lat, lng], {
             icon: L.divIcon({
                 className: `route-marker ${type}-marker`,
-                html: iconEmoji,
-                iconSize: [25, 25],
-                iconAnchor: [12, 12]
+                html: `<div style="color:${markerColor}; font-size: 26px;">${icons[type]}</div>`,
+                iconSize: [28, 28],
+                iconAnchor: [14, 14]
             })
         })
             .addTo(this.map)
             .bindPopup(popupContent);
 
-        // Só guardamos em routeMarkers se for start ou end
         if (type === 'start' || type === 'end') {
             this.routeMarkers[type] = marker;
         }
 
         return marker;
     }
+
 
     /**
      * Remove marcador de rota
