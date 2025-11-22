@@ -28,7 +28,7 @@ class UIController {
         this.currentPopup = null;
         this.poiManager = null;
 
-        this.stops = [];        
+        this.stops = [];
         this.stopMarkers = [];  
 
     }
@@ -310,10 +310,7 @@ class UIController {
                 return;
             }
 
-            const best = results[0];
-            this.handleLocationSelect(best.lat, best.lon, best.display_name, field);
-
-            document.getElementById('search-results').innerHTML = '';
+            this.displaySearchResults(results, field);
 
         } catch (error) {
             console.error(error);
@@ -390,7 +387,7 @@ class UIController {
         if (!input) {
             const container = document.getElementById('stops-container');
             if (container) {
-                this.addStopRow(container, index); // 👈 agora passamos o índice certo
+                this.addStopRow(container, index);
                 input = document.querySelector(`input[data-stop-index="${index}"]`);
             }
         }
