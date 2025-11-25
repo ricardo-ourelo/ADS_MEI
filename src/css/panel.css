@@ -574,3 +574,103 @@ body.theme-sunset {
     --adjust-note-color: #fff7ed;
 }
 
+
+
+/* Barra minimalista de POIs */
+.minimal-pois {
+    background: #4b93db;
+    padding: 8px;
+    border-radius: 8px;
+    margin-top: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+/* Ícones da barra */
+.poi-bar {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.poi-icon {
+    background: rgba(255,255,255,0.2);
+    border: none;
+    border-radius: 6px;
+    padding: 6px 8px;
+    font-size: 18px;
+    cursor: pointer;
+    color: white;
+    transition: background 0.2s, transform 0.1s;
+}
+
+.poi-icon:hover {
+    background: rgba(255,255,255,0.35);
+    transform: scale(1.15);
+}
+
+/* Botão limpar */
+.clear-pois-btn {
+    background: #e74c3c;
+    border: none;
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 20px;
+    color: white;
+    transition: background 0.2s, transform 0.1s;
+}
+
+.clear-pois-btn:hover {
+    background: #c0392b;
+    transform: scale(1.1);
+}
+
+
+
+/* Caixa de resultados no painel esquerdo (embaixo) */
+#search-results {
+    position: fixed;
+    left: 0;
+    bottom: 0;
+    max-width: 360px;                   /* igual à largura do aside */
+    max-height: 260px;
+    overflow-y: auto;
+    background: rgba(255,255,255,0.97);
+    backdrop-filter: blur(4px);
+    border-radius: 10px 10px 0 0;
+    box-shadow: 0 -2px 12px rgba(0,0,0,0.25);
+    padding: 8px;
+    z-index: 3000;                 /* sempre por cima do aside */
+    display: none;                 /* começa escondido */
+}
+
+/* Estilo dos itens */
+.search-result-item {
+    padding: 10px 12px;
+    margin-bottom: 6px;
+    border-radius: 6px;
+    background: #f1f1f1;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.search-result-item:hover {
+    background: #e3e9f5;
+}
+
+/* Título */
+.sr-title {
+    font-weight: 600;
+    font-size: 14px;
+    color: #333;
+}
+
+/* Coordenadas */
+.sr-coords {
+    color: #777;
+    font-size: 12px;
+    margin-top: 3px;
+}

@@ -71,11 +71,11 @@ html, body {
     #page-map aside {
         width: 460px;
         background: none !important;
-        padding: 88px;
+        padding: 30px;
 
         display: flex;
         flex-direction: column;
-        justify-content: space-between;
+        justify-content: flex-start;
         height: 100vh;
         overflow-y: auto;
     }

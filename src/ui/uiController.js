@@ -29,8 +29,12 @@ class UIController {
         this.poiManager = null;
 
         this.stops = [];
-        this.stopMarkers = [];  
+        this.stopMarkers = [];
 
+        this.poiCategories = [
+            'restaurant', 'cafe', 'hotel', 'bank', 'pharmacy',
+            'hospital', 'fuel', 'parking', 'supermarket', 'park'
+        ];
     }
 
 
@@ -81,7 +85,23 @@ class UIController {
         document.getElementById('search-start-btn').addEventListener('click', () => this.handleSearch('start'));
         document.getElementById('search-end-btn').addEventListener('click', () => this.handleSearch('end'));
         document.getElementById('clear-route-btn').addEventListener('click', () => this.handleClearRoute());
-        
+
+        document.addEventListener("click", (e) => {
+            const box = document.getElementById("search-results");
+            const isClickInside = box.contains(e.target);
+
+            const isSearchInput =
+                e.target.id === "start" ||
+                e.target.id === "end";
+
+            const isSearchButton =
+                e.target.classList.contains("search-btn") || e.target.classList.contains("stop-search-btn");
+
+            if (!isClickInside && !isSearchInput && !isSearchButton) {
+                box.style.display = "none";
+            }
+        });
+
         // Event listeners dos inputs (Enter)
         document.getElementById('start').addEventListener('keypress', (e) => {
             if (e.key === 'Enter') this.handleSearch('start');
@@ -171,10 +191,10 @@ class UIController {
     this.populateProfileDropdown();
 
     // Adicionar controles de POI
-    // this.addPOIControls();
+    this.addPOIControls();
 
     // Carregar POIs iniciais
-    // this.loadInitialPOIs();
+    //this.loadInitialPOIs();
 
     this.initStopsUI();
     this.initThemeSelector();
@@ -459,7 +479,6 @@ class UIController {
             this.showNotification('Por favor, digite um endereço para pesquisar', 'warning');
             return;
         }
-
         try {
             this.showLoading(field);
 
@@ -469,12 +488,14 @@ class UIController {
             const results = await this.searchManager.searchLocation(query);
 
             if (!results || results.length === 0) {
+                
                 this.showNotification('Nenhum resultado encontrado para essa pesquisa', 'warning');
                 document.getElementById('search-results').innerHTML = '';
                 return;
             }
 
             this.displaySearchResults(results, field);
+        console.log(results);
 
         } catch (error) {
             console.error(error);
@@ -491,50 +512,56 @@ class UIController {
      * @param {Array} results - Resultados da pesquisa
      * @param {string} field - Campo associado
      */
+
+
     displaySearchResults(results, field) {
-        const resultsContainer = document.getElementById('search-results');
+    const resultsContainer = document.getElementById('search-results');
 
-        if (!results || results.length === 0) {
-            resultsContainer.innerHTML = '<div class="search-result-item">Nenhum resultado encontrado</div>';
-            return;
-        }
-
-        resultsContainer.innerHTML = '';
-
-        results.forEach(result => {
-            const item = document.createElement('div');
-            item.className = 'search-result-item';
-            item.innerHTML = `
-                <strong>${result.display_name}</strong>
-                <br><small>Lat: ${result.lat}, Lon: ${result.lon}</small>
-            `;
-
-            item.onclick = () => {
-                const input = document.getElementById(field);
-                if (input) {
-                    input.value = result.display_name;
-                    input.dataset.lat = result.lat;
-                    input.dataset.lng = result.lon;
-                    input.dataset.address = result.display_name;
-                }
-
-                this.handleLocationSelect(result.lat, result.lon, result.display_name, field);
-
-                resultsContainer.innerHTML = '';
-                this.searchManager.clearSearchMarkers();
-                this.closeCurrentPopup();
-            };
-
-
-            resultsContainer.appendChild(item);
-        });
-
-        // Adicionar marcadores no mapa
-        this.searchManager.addSearchMarkers(results, (lat, lng, name) => {
-            this.handleLocationSelect(lat, lng, name, field);
-            this.closeCurrentPopup(); // Fechar popup ao selecionar
-        });
+    if (!results || results.length === 0) {
+        resultsContainer.innerHTML = '<div class="search-result-item">Nenhum resultado encontrado</div>';
+        resultsContainer.style.display = "block";
+        return;
     }
+
+    resultsContainer.innerHTML = '';
+
+    results.forEach(result => {
+        const item = document.createElement('div');
+        item.className = 'search-result-item';
+
+        item.innerHTML = `
+            <div class="sr-title">${result.display_name}</div>
+            <div class="sr-coords">📍 ${result.lat}, ${result.lon}</div>
+        `;
+
+        item.onclick = () => {
+            const input = document.getElementById(field);
+
+            if (input) {
+                input.value = result.display_name;
+                input.dataset.lat = result.lat;
+                input.dataset.lng = result.lon;
+                input.dataset.address = result.display_name;
+            }
+
+            this.handleLocationSelect(result.lat, result.lon, result.display_name, field);
+
+            resultsContainer.style.display = "none";  // esconder
+            this.searchManager.clearSearchMarkers();
+            this.closeCurrentPopup();
+        };
+
+        resultsContainer.appendChild(item);
+    });
+    // Mostra a caixa
+    resultsContainer.style.display = "block";  // agora mostra sempre
+    // Adiciona marcadores
+    this.searchManager.addSearchMarkers(results, (lat, lng, name) => {
+        this.handleLocationSelect(lat, lng, name, field);
+        resultsContainer.style.display = "none";
+        this.closeCurrentPopup();
+    });
+}
 
 
     /**
@@ -964,6 +991,139 @@ class UIController {
     }
 
 
+
+    // over passs
+
+    /**
+     * Adiciona controles de POI à interface
+     */
+    addPOIControls() {
+        // const controlsContainer = document.querySelector('.route-controls');
+        // // <option value="all">Todas as categorias</option>
+        // const poiControls = document.createElement('div');
+        // poiControls.className = 'poi-controls';
+        // poiControls.innerHTML = `
+        //     <div style="margin: 10px 0; padding: 10px; background: #4b93db; border-radius: 5px;">
+        //         <strong>🏪 Pontos de Interesse</strong>
+        //         <div style="margin-top: 5px;">
+        //             <select id="poi-category" style="width: 100%; padding: 5px; margin-bottom: 5px;">
+        //                 <option value="restaurant">🍽️ Restaurantes</option>
+        //                 <option value="cafe">☕ Cafés</option>
+        //                 <option value="hotel">🏨 Hotéis</option>
+        //                 <option value="bank">🏦 Bancos</option>
+        //                 <option value="pharmacy">💊 Farmácias</option>
+        //                 <option value="hospital">🏥 Hospitais</option>
+        //                 <option value="fuel">⛽ Postos</option>
+        //                 <option value="parking">🅿️ Estacionamentos</option>
+        //                 <option value="supermarket">🛒 Supermercados</option>
+        //                 <option value="park">🌳 Parques</option>
+        //             </select>
+        //             <button id="load-pois-btn" style="width: 100%; padding: 5px; background: #3498db; color: white; border: none; border-radius: 3px; cursor: pointer;">
+        //                 🗺️ Carregar POIs
+        //             </button>
+        //             <button id="clear-pois-btn" style="width: 100%; padding: 5px; background: #e74c3c; color: white; border: none; border-radius: 3px; cursor: pointer; margin-top: 5px;">
+        //                 🗑️ Limpar POIs
+        //             </button>
+        //         </div>
+        //     </div>
+        // `;
+        
+        // controlsContainer.appendChild(poiControls);
+        
+        // Event listeners para POIs
+        // document.getElementById('load-pois-btn').addEventListener('click', () => this.handleLoadPOIs());
+        document.querySelectorAll(".poi-icon").forEach(btn => {
+            btn.addEventListener("click", () => {
+                const type = btn.dataset.type;
+                // loadPois(type);
+                this.handleLoadPOIs(type);
+            });
+        });
+        document.getElementById('clear-pois-btn').addEventListener('click', () => this.handleClearPOIs());
+    }
+
+    /**
+     * Manipula carregamento de POIs
+     */
+ /**
+     * Manipula carregamento de POIs
+     */
+    async handleLoadPOIs(selectedCategory) {
+        this.handleClearPOIs();
+        // const categorySelect = document.getElementById('poi-category');
+        // const selectedCategory = categorySelect.value;
+        const loadButton = document.getElementById('clear-pois-btn');
+        
+        const categories = selectedCategory === 'all' 
+            ? this.poiCategories 
+            : [selectedCategory];
+
+        try {
+            // Mostrar loading
+            loadButton.innerHTML = '⏳';
+            loadButton.disabled = true;
+            
+            this.showNotification('Carregando pontos de interesse...', 'info');
+            
+            const stats = await this.poiManager.loadPOIsForVisibleArea(categories);
+           
+            this.showNotification(stats.message, 'success');
+            
+        } catch (error) {
+            console.error('Erro ao carregar POIs:', error);
+            this.showNotification('Erro ao carregar POIs: ' + error.message, 'error');
+        } finally {
+            // Restaurar botão
+            loadButton.innerHTML = '🗑️';
+            loadButton.disabled = false;
+        }
+    }
+
+    /**
+     * Manipula limpeza de POIs
+     */
+    handleClearPOIs() {
+        const removed = this.poiManager.clearAllPOIs();
+        this.showNotification(`Removidos ${removed} pontos de interesse`, 'info');
+    }
+
+    /**
+     * Carrega POIs iniciais
+     */
+    async loadInitialPOIs() {
+        // Aguardar um pouco para o mapa inicializar completamente
+        setTimeout(async () => {
+            try {
+                const center = this.mapManager.getCenter();
+                await this.poiManager.loadPOIsByRadius(
+                    center.lat, 
+                    center.lng, 
+                    2000, 
+                    ['restaurant']
+                );
+            } catch (error) {
+                console.log('Não foi possível carregar POIs iniciais:', error);
+            }
+        }, 2000);
+    }
+// ['restaurant', 'cafe', 'hotel']
+    /**
+     * Usa POI como localização (origem/destino)
+     * @param {number} lat - Latitude
+     * @param {number} lng - Longitude
+     * @param {string} name - Nome do POI
+     */
+    usePOIAsLocation(lat, lng, name) {
+        // Determinar se deve usar como origem ou destino
+        const field = !this.stateManager.getStartLocation() ? 'start' : 'end';
+        this.handleLocationSelect(lat, lng, name, field);
+    }
+    // over passs
+
+
+
+
+
     /**
      * Obtém instância do manager de mapa
      * @returns {MapManager} manager de mapa
@@ -992,9 +1152,13 @@ class UIController {
 
 }
 
-
 // Exportar para uso global
 window.uiController = new UIController();
+
+// Adicionar função global para uso do POI
+window.uiController.usePOIAsLocation = function(lat, lng, name) {
+    window.uiController.usePOIAsLocation(lat, lng, name);
+};
 
 // Inicializar quando o DOM estiver carregado
 document.addEventListener('DOMContentLoaded', () => {

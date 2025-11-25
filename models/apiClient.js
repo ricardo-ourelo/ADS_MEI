@@ -378,7 +378,7 @@ class APIClient {
    * console.log(pois.elements); // lista de POIs encontrados
    */
 
-  static async getPointsOfInterest(bbox, types = 'amenity') {
+  static async getPointsOfInterest(bbox, types = 'amenity', limit = 100) {
     const overpassQuery = `
       [out:json][timeout:25];
       (
@@ -388,7 +388,7 @@ class APIClient {
       );
       out body;
       >;
-      out skel qt;
+      out skel qt ${limit};
     `;
 
     const response = await axios.post(this.OVERPASS_BASE_URL, overpassQuery, {
@@ -397,7 +397,11 @@ class APIClient {
       }
     });
 
-    return response.data;
+  // Limitar retorno de elemento
+  const data = response.data;
+  data.elements = data.elements.slice(0, limit);
+
+    return data;
   }
 
 }
