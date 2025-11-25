@@ -789,6 +789,7 @@ class UIController {
         this.searchManager.clearSearchMarkers();
         this.clearAllMarkers();
         this.closeCurrentPopup();
+        this.poiManager.clearStopMarkers();
         
         // Limpar inputs
         document.getElementById('start').value = '';
