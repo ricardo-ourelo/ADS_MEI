@@ -83,16 +83,6 @@ export class ProfileManager {
     }
 
     /**
-     * Obtém velocidade média do perfil
-     * @param {string} profileId - ID do perfil
-     * @returns {number} Velocidade em km/h
-     */
-    getProfileSpeed(profileId) {
-        const profile = this.getProfile(profileId);
-        return profile.speed;
-    }
-
-    /**
      * Obtém todos os perfis disponíveis
      * @returns {Object} Todos os perfis
      */
@@ -118,13 +108,5 @@ export class ProfileManager {
 
         return html;
     }
-    
-    /**
-     * Valida se um perfil existe
-     * @param {string} profileId - ID do perfil a validar
-     * @returns {boolean} True se o perfil é válido
-     */
-    isValidProfile(profileId) {
-        return this.profiles.hasOwnProperty(profileId);
-    }
+
 }

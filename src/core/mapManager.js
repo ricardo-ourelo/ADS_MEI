@@ -66,17 +66,6 @@ export class MapManager {
         }
     }
 
-    /**
-     * Adiciona overlay
-     * @param {string} name - Nome do overlay
-     * @param {L.Layer} layer - Camada do overlay
-     */
-    addOverlay(name, layer) {
-        this.overlays[name] = layer;
-        if (this.layerControl) {
-            this.layerControl.addOverlay(layer, name);
-        }
-    }
 
     /**
      * Centraliza mapa nas coordenadas
@@ -147,16 +136,6 @@ export class MapManager {
         this.clickHandlers.push(handler);
     }
 
-    /**
-     * Remove handler de clique
-     * @param {Function} handler - Função handler a remover
-     */
-    removeClickHandler(handler) {
-        const index = this.clickHandlers.indexOf(handler);
-        if (index > -1) {
-            this.clickHandlers.splice(index, 1);
-        }
-    }
 
     /**
      * Processa clique no mapa
@@ -186,32 +165,6 @@ export class MapManager {
      */
     getBounds() {
         return this.map.getBounds();
-    }
-
-    /**
-     * Obtém centro atual do mapa
-     * @returns {L.LatLng} Centro atual
-     */
-    getCenter() {
-        return this.map.getCenter();
-    }
-
-    /**
-     * Obtém zoom atual
-     * @returns {number} Zoom atual
-     */
-    getZoom() {
-        return this.map.getZoom();
-    }
-
-    /**
-     * Calcula distância entre dois pontos
-     * @param {Object} point1 - Primeiro ponto {lat, lng}
-     * @param {Object} point2 - Segundo ponto {lat, lng}
-     * @returns {number} Distância em metros
-     */
-    calculateDistance(point1, point2) {
-        return this.map.distance([point1.lat, point1.lng], [point2.lat, point2.lng]);
     }
 
     /**

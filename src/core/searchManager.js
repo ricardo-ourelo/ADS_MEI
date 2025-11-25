@@ -108,41 +108,4 @@ export class SearchManager {
         this.searchMarkers = [];
     }
 
-    /**
-     * Obtém marcadores de pesquisa ativos
-     * @returns {Array} Array de marcadores
-     */
-    getSearchMarkers() {
-        return this.searchMarkers;
-    }
-
-    /**
-     * Valida coordenadas
-     * @param {number} lat - Latitude
-     * @param {number} lng - Longitude
-     * @returns {boolean} True se coordenadas são válidas
-     */
-    validateCoordinates(lat, lng) {
-        return !isNaN(lat) && !isNaN(lng) && 
-               lat >= -90 && lat <= 90 && 
-               lng >= -180 && lng <= 180;
-    }
-
-    /**
-     * Limpa cache de pesquisas
-     */
-    clearCache() {
-        this.searchCache.clear();
-    }
-
-    /**
-     * Obtém estatísticas do cache
-     * @returns {Object} Estatísticas do cache
-     */
-    getCacheStats() {
-        return {
-            size: this.searchCache.size,
-            keys: Array.from(this.searchCache.keys())
-        };
-    }
 }

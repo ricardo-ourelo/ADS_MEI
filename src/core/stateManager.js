@@ -102,14 +102,6 @@ export class StateManager {
     }
 
     /**
-     * Obtém localização do usuário
-     * @returns {Object|null} Localização do usuário
-     */
-    getUserLocation() {
-        return this.state.userLocation;
-    }
-
-    /**
      * Verifica se ambas localizações estão definidas
      * @returns {boolean} True se pronto para calcular rota
      */
@@ -117,19 +109,6 @@ export class StateManager {
         return this.state.startLocation !== null && this.state.endLocation !== null;
     }
 
-    /**
-     * Troca origem e destino
-     */
-    swapLocations() {
-        const temp = this.state.startLocation;
-        this.state.startLocation = this.state.endLocation;
-        this.state.endLocation = temp;
-        
-        this.notify('locationsSwapped', {
-            start: this.state.startLocation,
-            end: this.state.endLocation
-        });
-    }
 
     /**
      * Limpa todas as localizações e rota
@@ -154,17 +133,6 @@ export class StateManager {
     }
 
     /**
-     * Remove listener
-     * @param {string} event - Nome do evento
-     * @param {Function} callback - Função callback
-     */
-    removeListener(event, callback) {
-        if (this.listeners.has(event)) {
-            this.listeners.get(event).delete(callback);
-        }
-    }
-
-    /**
      * Notifica listeners sobre mudanças
      * @param {string} event - Nome do evento
      * @param {any} data - Dados do evento
@@ -181,34 +149,4 @@ export class StateManager {
         }
     }
 
-    /**
-     * Obtém estado completo
-     * @returns {Object} Estado atual
-     */
-    getState() {
-        return { ...this.state };
-    }
-
-    /**
-     * Exporta estado para JSON
-     * @returns {string} Estado em formato JSON
-     */
-    exportState() {
-        return JSON.stringify(this.state);
-    }
-
-    /**
-     * Importa estado de JSON
-     * @param {string} jsonString - Estado em formato JSON
-     */
-    importState(jsonString) {
-        try {
-            const newState = JSON.parse(jsonString);
-            this.state = { ...this.state, ...newState };
-            this.notify('stateImported', this.state);
-        } catch (error) {
-            console.error('Erro ao importar estado:', error);
-            throw error;
-        }
-    }
 }

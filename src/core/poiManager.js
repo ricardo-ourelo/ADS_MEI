@@ -168,68 +168,7 @@ export class POIManager {
         this.removeRouteMarker('end');
     }
 
-    /**
-     * Verifica se a rota está completa visualmente (origem + destino colocados).
-     * @returns {boolean} - true se ambos os marcadores existem
-     */
-    hasBothRouteMarkers() {
-        return !!(this.routeMarkers.start && this.routeMarkers.end);
-    }
-
-
-
-
-
-
     // over pass
-
-    /**
-     * Adiciona um POI ao mapa
-     * @param {string} category - Categoria do POI
-     * @param {number} lat - Latitude
-     * @param {number} lng - Longitude
-     * @param {string} name - Nome do POI
-     * @param {string} icon - Ícone HTML ou URL
-     * @returns {string} ID do POI criado
-     */
-    addPOI(category, lat, lng, name, icon = '📍') {
-        const poiId = `poi_${category}_${Date.now()}`;
-        
-        const marker = L.marker([lat, lng], {
-            icon: L.divIcon({
-                className: `poi-marker ${category}-poi`,
-                html: icon,
-                iconSize: [25, 25],
-                iconAnchor: [12, 12]
-            })
-        }).addTo(this.map).bindPopup(`<strong>${name}</strong>`);
-
-        if (!this.poiMarkers.has(category)) {
-            this.poiMarkers.set(category, new Map());
-        }
-        this.poiMarkers.get(category).set(poiId, marker);
-
-        return poiId;
-    }
-
-
-
-        /**
-     * Remove POI específico
-     * @param {string} category - Categoria do POI
-     * @param {string} poiId - ID do POI
-     * @returns {boolean} True se removido com sucesso
-     */
-    removePOI(category, poiId) {
-        if (this.poiMarkers.has(category) && this.poiMarkers.get(category).has(poiId)) {
-            const marker = this.poiMarkers.get(category).get(poiId);
-            this.map.removeLayer(marker);
-            this.poiMarkers.get(category).delete(poiId);
-            return true;
-        }
-        return false;
-    }
-
 
  /**
      * Carrega POIs para a área visível do mapa
@@ -263,32 +202,6 @@ export class POIManager {
 
         } catch (error) {
             console.error('Erro ao carregar POIs:', error);
-            throw new Error(`Falha ao carregar pontos de interesse: ${error.message}`);
-        }
-    }
-
-    /**
-     * Carrega POIs em um raio específico
-     * @param {number} lat - Latitude do centro
-     * @param {number} lng - Longitude do centro
-     * @param {number} radius - Raio em metros
-     * @param {Array} categories - Categorias de POIs
-     * @returns {Promise<Object>} Estatísticas do carregamento
-     */
-    // categories = ['restaurant', 'cafe', 'hotel']
-    async loadPOIsByRadius(lat, lng, radius = 1000, categories = ['restaurant']) {
-        try {
-            console.log('Carregando POIs por raio:', { lat, lng, radius, categories });
-
-            const pois = await this.overpassManager.getPOIsByCategory(
-                lat, lng, radius, categories
-            );
-            uiController.showNotification(`Recebidos ${pois.length} POIs da API`);
-            //console.log(`Recebidos ${pois.length} POIs da API`);
-            return this.displayPOIs(pois);
-
-        } catch (error) {
-            console.error('Erro ao carregar POIs por raio:', error);
             throw new Error(`Falha ao carregar pontos de interesse: ${error.message}`);
         }
     }
@@ -501,64 +414,6 @@ export class POIManager {
         
         return totalRemoved;
     }
-
-    /**
-     * Obtém estatísticas dos POIs atuais
-     * @returns {Object} Estatísticas dos POIs
-     */
-    getPOIsStats() {
-        let total = 0;
-        const categories = {};
-
-        this.currentPOIs.forEach((markers, category) => {
-            const count = markers.size;
-            categories[category] = count;
-            total += count;
-        });
-
-        return {
-            total,
-            categories,
-            categoriesCount: Object.keys(categories).length
-        };
-    }
-
-    /**
-     * Obtém POIs por categoria
-     * @param {string} category - Categoria desejada
-     * @returns {Array} Array de POIs
-     */
-    getPOIsByCategory(category) {
-        if (this.currentPOIs.has(category)) {
-            return Array.from(this.currentPOIs.get(category).entries());
-        }
-        return [];
-    }
-
-
-
-        /**
-     * Remove todos os POIs de uma categoria
-     * @param {string} category - Categoria a ser limpa
-     * @returns {number} Número de POIs removidos
-     */
-    clearCategory(category) {
-        if (this.poiMarkers.has(category)) {
-            const markers = this.poiMarkers.get(category);
-            let count = 0;
-            
-            markers.forEach(marker => {
-                this.map.removeLayer(marker);
-                count++;
-            });
-            
-            this.poiMarkers.delete(category);
-            return count;
-        }
-        return 0;
-    }
-
-
 
 
     // over pass

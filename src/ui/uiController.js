@@ -350,7 +350,6 @@ class UIController {
     }
 
 
-
     /**
      * Cria uma linha de paragem (input + botões)
      * @param {HTMLElement} container - div #stops-container
@@ -441,9 +440,6 @@ class UIController {
         this.initStopsSortable();
 
     }
-
-
-
 
     /**
      * Popula dropdown de perfis
@@ -991,46 +987,12 @@ class UIController {
         }, 3200);
     }
 
-
-
     // over passs
 
     /**
      * Adiciona controles de POI à interface
      */
     addPOIControls() {
-        // const controlsContainer = document.querySelector('.route-controls');
-        // // <option value="all">Todas as categorias</option>
-        // const poiControls = document.createElement('div');
-        // poiControls.className = 'poi-controls';
-        // poiControls.innerHTML = `
-        //     <div style="margin: 10px 0; padding: 10px; background: #4b93db; border-radius: 5px;">
-        //         <strong>🏪 Pontos de Interesse</strong>
-        //         <div style="margin-top: 5px;">
-        //             <select id="poi-category" style="width: 100%; padding: 5px; margin-bottom: 5px;">
-        //                 <option value="restaurant">🍽️ Restaurantes</option>
-        //                 <option value="cafe">☕ Cafés</option>
-        //                 <option value="hotel">🏨 Hotéis</option>
-        //                 <option value="bank">🏦 Bancos</option>
-        //                 <option value="pharmacy">💊 Farmácias</option>
-        //                 <option value="hospital">🏥 Hospitais</option>
-        //                 <option value="fuel">⛽ Postos</option>
-        //                 <option value="parking">🅿️ Estacionamentos</option>
-        //                 <option value="supermarket">🛒 Supermercados</option>
-        //                 <option value="park">🌳 Parques</option>
-        //             </select>
-        //             <button id="load-pois-btn" style="width: 100%; padding: 5px; background: #3498db; color: white; border: none; border-radius: 3px; cursor: pointer;">
-        //                 🗺️ Carregar POIs
-        //             </button>
-        //             <button id="clear-pois-btn" style="width: 100%; padding: 5px; background: #e74c3c; color: white; border: none; border-radius: 3px; cursor: pointer; margin-top: 5px;">
-        //                 🗑️ Limpar POIs
-        //             </button>
-        //         </div>
-        //     </div>
-        // `;
-        
-        // controlsContainer.appendChild(poiControls);
-        
         // Event listeners para POIs
         // document.getElementById('load-pois-btn').addEventListener('click', () => this.handleLoadPOIs());
         document.querySelectorAll(".poi-icon").forEach(btn => {
@@ -1044,9 +1006,6 @@ class UIController {
     }
 
     /**
-     * Manipula carregamento de POIs
-     */
- /**
      * Manipula carregamento de POIs
      */
     async handleLoadPOIs(selectedCategory) {
@@ -1088,26 +1047,7 @@ class UIController {
         this.showNotification(`Removidos ${removed} pontos de interesse`, 'info');
     }
 
-    /**
-     * Carrega POIs iniciais
-     */
-    async loadInitialPOIs() {
-        // Aguardar um pouco para o mapa inicializar completamente
-        setTimeout(async () => {
-            try {
-                const center = this.mapManager.getCenter();
-                await this.poiManager.loadPOIsByRadius(
-                    center.lat, 
-                    center.lng, 
-                    2000, 
-                    ['restaurant']
-                );
-            } catch (error) {
-                console.log('Não foi possível carregar POIs iniciais:', error);
-            }
-        }, 2000);
-    }
-// ['restaurant', 'cafe', 'hotel']
+
     /**
      * Usa POI como localização (origem/destino)
      * @param {number} lat - Latitude
@@ -1119,27 +1059,7 @@ class UIController {
         const field = !this.stateManager.getStartLocation() ? 'start' : 'end';
         this.handleLocationSelect(lat, lng, name, field);
     }
-    // over passs
 
-
-
-
-
-    /**
-     * Obtém instância do manager de mapa
-     * @returns {MapManager} manager de mapa
-     */
-    getMapManager() {
-        return this.mapManager;
-    }
-
-    /**
-     * Obtém instância do manager de estado
-     * @returns {StateManager} manager de estado
-     */
-    getStateManager() {
-        return this.stateManager;
-    }
 
     /**
      * Verifica se está inicializado

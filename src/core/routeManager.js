@@ -164,14 +164,4 @@ export class RouteManager {
         return this.routeLayer !== null;
     }
 
-    /**
-     * Calcula bounding box que contém toda a rota
-     * @returns {L.LatLngBounds|null} Bounds da rota
-     */
-    getRouteBounds() {
-        if (this.routeLayer) {
-            return this.routeLayer.getBounds();
-        }
-        return null;
-    }
 }

@@ -35,7 +35,6 @@ export class OverpassManager {
 
             const data = await response.json();
             console.log(data.elements);
-            // console.log(data[0].elements);
             window.dados_ = data;
             return data.elements;
 
@@ -45,29 +44,6 @@ export class OverpassManager {
         }
     }
 
-    /**
-     * Obtém POIs por categoria em uma área específica
-     * @param {number} lat - Latitude do centro
-     * @param {number} lng - Longitude do centro
-     * @param {number} radius - Raio em metros
-     * @param {Array} categories - Categorias de POIs
-     * @returns {Promise<Array>} Array de POIs
-     */
-    // ['restaurant', 'cafe', 'hotel']
-    async getPOIsByCategory(lat, lng, radius = 1000, categories = ['restaurant']) {
-        try {
-            // Calcular bounding box baseado no raio
-            const bbox = this.calculateBoundingBox(lat, lng, radius);
-            const types = categories.join(',');
-            
-            const data = await this.executeQuery(bbox, types);
-            return this.formatPOIsData(data, lat, lng);
-
-        } catch (error) {
-            console.error('Erro ao obter POIs:', error);
-            throw error;
-        }
-    }
 
     /**
      * Obtém POIs dentro de uma bounding box
@@ -93,25 +69,6 @@ export class OverpassManager {
         }
     }
 
-    /**
-     * Calcula bounding box baseada em centro e raio
-     * @param {number} lat - Latitude do centro
-     * @param {number} lng - Longitude do centro
-     * @param {number} radius - Raio em metros
-     * @returns {string} Bounding box no formato "south,west,north,east"
-     */
-    calculateBoundingBox(lat, lng, radius) {
-        // Conversão aproximada: 1 grau ≈ 111km
-        const latDelta = radius / 111000;
-        const lngDelta = radius / (111000 * Math.cos(lat * Math.PI / 180));
-        
-        const south = lat - latDelta;
-        const west = lng - lngDelta;
-        const north = lat + latDelta;
-        const east = lng + lngDelta;
-        
-        return `${south},${west},${north},${east}`;
-    }
 
     /**
      * Formata dados dos POIs para estrutura padronizada
@@ -289,15 +246,4 @@ export class OverpassManager {
         return colors[category] || colors['other'];
     }
 
-    /**
-     * Constrói query para categorias específicas (mantido para compatibilidade)
-     * @param {Array} categories - Categorias de POIs
-     * @returns {string} Query das categorias
-     */
-    buildCategoriesQuery(categories) {
-        // Esta função é mantida para compatibilidade com código existente
-        // Mas não é mais usada com a API interna
-        console.warn('buildCategoriesQuery não é mais necessária com a API interna');
-        return categories.join(',');
-    }
 }
