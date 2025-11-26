@@ -379,31 +379,36 @@ class APIClient {
    */
 
   static async getPointsOfInterest(bbox, types = 'amenity', limit = 100) {
-    const overpassQuery = `
-      [out:json][timeout:25];
-      (
-        node[${types}](${bbox});
-        way[${types}](${bbox});
-        relation[${types}](${bbox});
-      );
-      out body;
-      >;
-      out skel qt ${limit};
-    `;
+  // Opcional: validar bbox/types aqui
+  const overpassQuery = `
+    [out:json][timeout:25];
+    (
+      node[${types}](${bbox});
+      way[${types}](${bbox});
+      relation[${types}](${bbox});
+    );
+    out body ${limit};
+    >;
+    out skel qt ${limit};
+  `;
 
-    const response = await axios.post(this.OVERPASS_BASE_URL, overpassQuery, {
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded'
-      }
-    });
+  try {
+    const response = await axios.post(
+      this.OVERPASS_BASE_URL,
+      `data=${encodeURIComponent(overpassQuery)}`,
+      { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
+    );
 
-  // Limitar retorno de elemento
-  const data = response.data;
-  data.elements = data.elements.slice(0, limit);
-
+    const data = response.data;
+    data.elements = data.elements ? data.elements.slice(0, limit) : [];
     return data;
+  } catch (err) {
+    throw new Error(`Falha ao obter POIs da Overpass: ${err.message}`);
   }
+}
+
 
 }
+
 
 module.exports = APIClient;
