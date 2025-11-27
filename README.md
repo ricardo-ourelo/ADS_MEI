@@ -34,7 +34,7 @@ A aplicação integra múltiplas APIs REST para cálculo de rotas, geocodificaç
 - Limpeza e reinício
 - Opção para reiniciar a seleção de pontos e calcular uma nova rota.
 
-### Funcionalidades Opcionais
+### Funcionalidades Opcionais Implementadas
 
 - Pesquisa de localização (Nominatim):
 - Campo de pesquisa para encontrar locais e centralizar o mapa automaticamente.
@@ -44,7 +44,3 @@ A aplicação integra múltiplas APIs REST para cálculo de rotas, geocodificaç
 - Exibição de POIs próximos do trajeto (restaurantes, parques, etc.).
 - Múltiplos destinos:
 - Possibilidade de adicionar waypoints intermédios na rota.
-- Exportação de dados:
-- Exportação da rota em formatos GPX ou JSON.
-- Estatísticas avançadas:
-- Integração com APIs de elevação para gerar o perfil altimétrico do percurso.
