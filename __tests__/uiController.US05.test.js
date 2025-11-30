@@ -12,24 +12,38 @@ describe("US05 — Limpeza e reinício da rota", () => {
 
     beforeEach(() => {
         document.body.innerHTML = `
-      <input id="start" value="Lisboa">
-      <input id="end" value="Porto">
-      <div id="search-results">Resultados</div>
-      <div id="route-info">Info</div>
-      <button id="clear-route-btn">Limpar</button>
+        <div id="page-map">
+            <aside></aside>
+        </div>
+
+        <input id="start" value="Lisboa">
+        <input id="end" value="Porto">
+        <div id="search-results">Resultados</div>
+        <div id="route-info">Info</div>
+        <button id="clear-route-btn">Limpar</button>
     `;
 
         uiController = new UIController();
 
-        uiController.stateManager = { clearAll: jest.fn() };
+        uiController.stateManager = {
+            clearAll: jest.fn(),
+            getActiveProfile: jest.fn(() => "car"),
+            isReadyForRoute: jest.fn(() => true),
+            getStartLocation: jest.fn(),
+            getEndLocation: jest.fn()
+        };
+
         uiController.routeManager = { clearRoute: jest.fn() };
         uiController.searchManager = { clearSearchMarkers: jest.fn() };
         uiController.poiManager = {
             clearRouteMarkers: jest.fn(),
             clearAllPOIs: jest.fn(),
+            clearStopMarkers: jest.fn()
         };
+
         uiController.mapManager = { getMap: jest.fn(() => ({ closePopup: jest.fn() })) };
     });
+
 
     test("deve limpar inputs e resetar interface ao chamar handleClearRoute()", () => {
         uiController.handleClearRoute();

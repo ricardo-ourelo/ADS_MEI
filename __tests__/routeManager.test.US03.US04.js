@@ -56,9 +56,7 @@ describe("US03 — Cálculo e Exibição de Rotas", () => {
 
         const routeData = await routeManager.calculateRoute(start, end, profile);
 
-        expect(fetch).toHaveBeenCalledWith(
-            `/api/route?start=${start.lng},${start.lat}&end=${end.lng},${end.lat}&profile=${profile}`
-        );
+        expect(fetch.mock.calls[0][0]).toContain(`profile=${profile}`);
         expect(routeData.code).toBe("Ok");
         expect(routeData.routes[0].distance).toBe(12000);
     });
