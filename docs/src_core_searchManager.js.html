@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: src/core/searchManager.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: src/core/searchManager.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>/**
+ * Gerencia pesquisas de localização e geocodificação
+ */
+export class SearchManager {
+    constructor(map) {
+        this.map = map;
+        this.searchMarkers = [];
+        this.searchCache = new Map();
+    }
+
+    /**
+     * Pesquisa localização por endereço
+     * @param {string} query - Endereço a pesquisar
+     * @param {number} limit - Número máximo de resultados
+     * @returns {Promise&lt;Array>} Array de resultados
+     */
+    async searchLocation(query, limit = 5) {
+        if (!query || query.trim() === '') {
+            throw new Error('Query de pesquisa não pode estar vazia');
+        }
+
+        // Verificar cache
+        const cacheKey = `search_${query}_${limit}`;
+        if (this.searchCache.has(cacheKey)) {
+            return this.searchCache.get(cacheKey);
+        }
+
+        try {
+            const response = await fetch(`/api/search?q=${encodeURIComponent(query)}&amp;limit=${limit}`);
+            
+            if (!response.ok) {
+                throw new Error(`Erro HTTP: ${response.status}`);
+            }
+
+            const results = await response.json();
+            
+            // Armazenar no cache (expira após 5 minutos)
+            this.searchCache.set(cacheKey, results);
+            setTimeout(() => {
+                this.searchCache.delete(cacheKey);
+            }, 300000);
+
+            return results;
+
+        } catch (error) {
+            console.error('Erro na pesquisa:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Geocodificação reversa (coordenadas para endereço)
+     * @param {number} lat - Latitude
+     * @param {number} lng - Longitude
+     * @returns {Promise&lt;Object>} Dados do local
+     */
+    async reverseGeocode(lat, lng) {
+        try {
+            const response = await fetch(`/api/search?q=${lat},${lng}&amp;format=json`);
+            
+            if (!response.ok) {
+                throw new Error(`Erro HTTP: ${response.status}`);
+            }
+
+            const results = await response.json();
+            return results.length > 0 ? results[0] : null;
+
+        } catch (error) {
+            console.error('Erro na geocodificação reversa:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Adiciona marcadores de pesquisa no mapa
+     * @param {Array} results - Resultados da pesquisa
+     * @param {Function} onLocationSelect - Callback quando localização é selecionada
+     * @returns {Array} Array de marcadores criados
+     */
+    addSearchMarkers(results, onLocationSelect) {
+        // Limpar marcadores anteriores
+        this.clearSearchMarkers();
+
+        const markers = results.map(result => {
+            const marker = L.marker([result.lat, result.lon])
+                .addTo(this.map)
+                .bindPopup(`
+                    &lt;strong>${result.display_name}&lt;/strong>&lt;br>
+                    &lt;button onclick="window.selectSearchLocation(${result.lat}, ${result.lon}, '${result.display_name.replace(/'/g, "\\'")}')">
+                        Selecionar Localização
+                    &lt;/button>
+                `);
+
+            this.searchMarkers.push(marker);
+            return marker;
+        });
+
+        return markers;
+    }
+
+    /**
+     * Limpa todos os marcadores de pesquisa
+     */
+    clearSearchMarkers() {
+        this.searchMarkers.forEach(marker => {
+            this.map.removeLayer(marker);
+        });
+        this.searchMarkers = [];
+    }
+
+}</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-controllers_appManager.html">controllers/appManager</a></li><li><a href="module-controllers_poiManager.html">controllers/poiManager</a></li><li><a href="module-controllers_routeManager.html">controllers/routeManager</a></li><li><a href="module-controllers_searchManager.html">controllers/searchManager</a></li><li><a href="module-core_mapManager.html">core/mapManager</a></li><li><a href="module-core_profileManager.html">core/profileManager</a></li><li><a href="module-core_routeManager.html">core/routeManager</a></li><li><a href="module-core_stateManager.html">core/stateManager</a></li><li><a href="module-ui_uiController.html">ui/uiController</a></li></ul><h3>Classes</h3><ul><li><a href="APIClient.html">APIClient</a></li><li><a href="OverpassManager.html">OverpassManager</a></li><li><a href="POIManager_POIManager.html">POIManager</a></li><li><a href="SearchManager.html">SearchManager</a></li><li><a href="module-core_mapManager.MapManager.html">MapManager</a></li><li><a href="module-core_profileManager.ProfileManager.html">ProfileManager</a></li><li><a href="module-core_routeManager.RouteManager.html">RouteManager</a></li><li><a href="module-core_stateManager.StateManager.html">StateManager</a></li><li><a href="module-ui_uiController-UIController.html">UIController</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.5</a> on Wed Dec 03 2025 15:11:42 GMT+0000 (Hora padrão da Europa Ocidental)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>
