@@ -1,142 +1,152 @@
 
-# Documento de Arquitetura — Sistema Interativo de Rotas e Exploração de Locais com OpenStreetMap
+---
 
-## 1. Introdução
+# Documento Atualizado — Arquitetura das APIs e Comunicação do Sistema
 
-O objetivo deste documento é descrever a **arquitetura e design de software** do sistema “**Sistema Interativo de Rotas e Exploração de Locais com OpenStreetMap**”.
-A aplicação será desenvolvida ao longo de **dois a três sprints**, com base numa metodologia **ágeil (Scrum)**, priorizando a entrega incremental de funcionalidades.
+## Visão Geral
 
-A ênfase da unidade curricular é o **design arquitetural**, a **integração de APIs REST** e a **visualização de dados dinâmicos** em contexto de aplicação web interativa.
+Este documento descreve a arquitetura de comunicação entre:
+
+* o **cliente web** (frontend),
+* a **API interna** desenvolvida em Express (backend),
+* e os **serviços externos do ecossistema OpenStreetMap**.
+
+O objetivo é mostrar como o frontend comunica exclusivamente com a API interna, a qual atua como intermediária e responsável por obter dados de pesquisa, rotas e pontos de interesse (POIs) utilizando as APIs externas Nominatim, OSRM e Overpass.
+
+Toda a comunicação entre camadas é feita em **JSON**.
 
 ---
 
-## 2. Visão Geral do Sistema
+## Arquitetura Geral do Sistema
 
-O sistema é uma aplicação **web cliente (SPA – Single Page Application)** que utiliza dados do **OpenStreetMap (OSM)** para permitir:
+### 1. Cliente Web (Frontend)
 
-* Visualização e exploração de mapas;
-* Seleção de pontos e cálculo de rotas via **OSRM API**;
-* (Opcionalmente) pesquisa de locais via **Nominatim**;
-* (Opcionalmente) obtenção de pontos de interesse (POIs) via **Overpass API**.
+O frontend é responsável pela interface e interações do utilizador. É composto por vários módulos especializados:
 
-A aplicação é totalmente executada no **lado do cliente (browser)**, comunicando com as APIs externas através de **requisições HTTP (REST)** e processando **respostas JSON**.
+* **UIController**
+  Ponto central que coordena as ações do utilizador e comunica com os vários managers.
+
+* **MapManager**
+  Atualiza o mapa Leaflet: marcadores, camadas, rota, vista, POIs.
+
+* **SearchManager**
+  Envia pedidos de pesquisa de locais para o backend.
+
+* **RouteManager**
+  Solicita cálculo de rotas (incluindo múltiplos destinos).
+
+* **POIManager**
+  Solicita e apresenta POIs provenientes da API interna Overpass.
+
+O frontend nunca comunica directamente com APIs externas. Todo o tráfego passa pelo backend.
 
 ---
 
-## 3. Planeamento de Desenvolvimento (Sprints)
+### 2. API Interna (Backend Express)
 
-| Sprint         | Objetivos Principais                                                                  |
-| -------------- | ------------------------------------------------------------------------------------- |
-| **Sprint 1**   | Mapa interativo e seleção de pontos; cálculo e exibição de rotas (OSRM).              |
-| **Sprint 2**   | Pesquisa de locais (Nominatim) e melhorias na interface do utilizador.                |
-| **Sprint 2/3** | Funcionalidades opcionais (POIs, exportação de rotas), refino, testes e documentação. |
+A API interna funciona como:
+
+* intermediária entre o frontend e serviços externos OSM,
+* proxy que permite controlar, simplificar e unificar pedidos,
+* camada que pode opcionalmente aplicar caching, autenticação, limites de uso ou segurança.
+
+A API fornece três endpoints principais:
+
+#### `/api/search`
+
+Encaminha pedidos para o serviço **Nominatim** (geocoding e search).
+
+#### `/api/route`
+
+Encaminha pedidos para **OSRM** (routing).
+Suporta parâmetros:
+
+* `start`
+* `end`
+* `profile`
+* `stops` (paragens intermédias)
+
+#### `/api/poi`
+
+Constrói uma query Overpass QL e solicita ao serviço **Overpass API** a lista de POIs dentro de uma bounding box.
+
+O backend normaliza e devolve respostas ao frontend sempre em JSON.
 
 ---
 
-## 4. Arquitetura de Alto Nível
+### 3. Serviços Externos OSM
 
-A arquitetura segue o padrão **cliente modular**, dividido em **camadas funcionais**:
+A aplicação utiliza três serviços principais:
+
+* **Nominatim**
+  Pesquisa geográfica e reverse geocoding.
+
+* **OSRM**
+  Cálculo de rotas, distância e duração.
+
+* **Overpass API**
+  Consulta de elementos OSM (POIs) dentro de áreas definidas pelo utilizador.
+
+Estes serviços nunca são contactados diretamente pelo frontend.
+
+---
+
+## Fluxo de Comunicação
+
+### Pesquisa de locais
+
+1. Utilizador introduz uma pesquisa.
+2. UIController chama SearchManager.
+3. SearchManager envia pedido para `/api/search?q=...`.
+4. Backend encaminha para Nominatim.
+5. Resultados são devolvidos ao cliente e apresentados no mapa.
+
+---
+
+### Cálculo de rota
+
+1. Utilizador seleciona origem, destino e eventuais paragens.
+2. UIController chama RouteManager.
+3. RouteManager envia pedido para:
 
 ```
-┌───────────────────────────────────────┐
-│            Interface (UI)             │
-│ - Mapa interativo                     │
-│ - Controlo de zoom, pan e seleção     │
-│ - Painel de informação da rota        │
-└───────────────────────────────────────┘
-               │
-               ▼
-┌───────────────────────────────────────┐
-│      Lógica de Aplicação (Core)       │
-│ - Gestão do estado do mapa e pontos   │
-│ - Processamento de respostas JSON     │
-│ - Coordenação entre UI e APIs         │
-└───────────────────────────────────────┘
-               │
-               ▼
-┌───────────────────────────────────────┐
-│       Camada de Integração (APIs)     │
-│ - OSRM API (rotas, distância, tempo)  │
-│ - Nominatim (geocodificação)          │
-│ - Overpass (pontos de interesse)      │
-└───────────────────────────────────────┘
+/api/route?start=...&end=...&profile=...&stops=...
 ```
 
----
-
-## 5. Principais Componentes
-
-| Componente                   | Função                                                                 |
-| ---------------------------- | ---------------------------------------------------------------------- |
-| **Mapa (MapManager)**        | Inicializa e gere o mapa, zoom, pan e eventos de clique.               |
-| **Rota (RouteManager)**      | Comunica com a API OSRM, calcula e desenha rotas.                      |
-| **Pesquisa (SearchManager)** | Liga à API Nominatim para encontrar locais (opcional).                 |
-| **POIManager**               | Obtém pontos de interesse via Overpass (opcional).                     |
-| **UIController**             | Controla elementos da interface (botões, painéis, campos de pesquisa). |
-| **APIClient**                | Responsável por efetuar requisições HTTP e devolver JSON tratado.      |
-| **Utils/Helpers**            | Funções auxiliares para formatação, tratamento de erros e coordenadas. |
+4. Backend chama OSRM.
+5. A rota é devolvida ao frontend e desenhada no mapa.
 
 ---
 
-## 6. Fluxo de Interação (Exemplo: Cálculo de Rota)
+### Carregamento de POIs
 
-1. O utilizador **clica em dois pontos** no mapa.
-2. O sistema regista as coordenadas e chama o `RouteManager`.
-3. O `RouteManager` constrói o pedido HTTP para a **API OSRM**.
-4. A resposta (JSON) é processada e convertida em dados utilizáveis.
-5. A rota é **desenhada no mapa** e as informações (distância e tempo) são apresentadas na UI.
+1. Utilizador selecciona uma categoria de POIs.
+2. UIController chama POIManager.
+3. POIManager envia pedido para:
 
----
-
-## 7. Diagrama de Casos de Uso (Visão Textual)
-
-| Ator       | Caso de Uso                | Descrição                                           |
-| ---------- | -------------------------- | --------------------------------------------------- |
-| Utilizador | Visualizar mapa            | Acede ao mapa interativo e navega.                  |
-| Utilizador | Selecionar pontos          | Clica em dois pontos para definir origem e destino. |
-| Utilizador | Calcular rota              | O sistema comunica com a API OSRM e desenha a rota. |
-| Utilizador | Ver distância e tempo      | As informações da rota são exibidas.                |
-| Utilizador | Pesquisar local (opcional) | Introduz texto e centraliza o mapa (Nominatim).     |
-| Utilizador | Exportar rota (opcional)   | Guarda a rota em GPX ou JSON.                       |
-
----
-
-## 8. Modelo de Dados (Simplificado)
-
-**Exemplo de resposta OSRM (JSON):**
-
-```json
-{
-  "routes": [
-    {
-      "distance": 1264.5,
-      "duration": 214.3,
-      "geometry": "encoded_polyline_data"
-    }
-  ],
-  "waypoints": [
-    { "name": "Origin", "location": [-9.1393, 38.7139] },
-    { "name": "Destination", "location": [-9.1427, 38.7223] }
-  ]
-}
+```
+/api/poi?bbox=...&types=cafe,restaurant,...
 ```
 
----
-
-## 9. Ferramentas e Tecnologias
-
-* **Linguagem:** JavaScript, HTML, CSS
-* **Biblioteca de mapas:** [Leaflet.js](https://leafletjs.com/)
-* **APIs Externas:** OSRM, Nominatim, Overpass
-* **Gestão de versão:** Git + GitHub
-* **Metodologia:** Scrum (2–3 sprints)
+4. Backend constrói a query Overpass QL e consulta a Overpass API.
+5. Os POIs são devolvidos e desenhados no mapa.
 
 ---
 
-## 10. Próximos Passos
+## Diagrama da Arquitetura das APIs
 
-1. Elaborar **diagramas UML** (classes, sequência e arquitetura).
-2. Criar **Product Backlog completo** (histórias de utilizador, critérios de aceitação).
-3. Definir **wireframes da interface** (UI/UX).
-4. Validar plano de Sprints e tarefas antes da implementação.
+O diagrama reflete esta estrutura: o frontend comunica apenas com a API Express, que por sua vez contacta Nominatim, OSRM e Overpass, centralizando e simplificando toda a lógica de integração com o ecossistema OSM.
+
+---
+
+## Benefícios Desta Arquitetura
+
+* **Isolamento total** entre frontend e serviços externos.
+* **Melhor segurança**, ao evitar chamadas diretas do browser.
+* **Maior flexibilidade** para alterar serviços externos sem afetar o frontend.
+* **Possibilidade de caching** no backend.
+* **Resposta sempre normalizada**, independentemente da API externa.
+* **Extensível** para novas fontes de dados ou funcionalidades.
+
+---
 

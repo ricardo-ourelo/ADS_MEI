@@ -6,7 +6,7 @@
 ## Visão Geral
 
 O **Product Backlog** define todas as **histórias de utilizador**, **critérios de aceitação** e **prioridades** que guiam o desenvolvimento do sistema.
-O projeto será desenvolvido em **2 a 3 sprints**, seguindo a metodologia **Scrum** e prioriza a entrega de funcionalidades essenciais primeiro.
+O projeto será desenvolvido em **2 sprints**, seguindo a metodologia **Scrum** e prioriza a entrega de funcionalidades essenciais primeiro.
 
 ---
 
@@ -115,8 +115,6 @@ O projeto será desenvolvido em **2 a 3 sprints**, seguindo a metodologia **Scru
 
 ---
 
-## Sprint 2/3 — Funcionalidades Opcionais e Refinamento
-
 ### **US08 — Pontos de interesse ao longo da rota (Overpass API)**
 
 **Como** utilizador
@@ -131,17 +129,14 @@ O projeto será desenvolvido em **2 a 3 sprints**, seguindo a metodologia **Scru
 
 ---
 
-### **US09 — Exportação de rota**
+### **US09 —  Melhorias de UI e Refino de Funcionalidades**
 
-**Como** utilizador
-**quero** exportar a rota calculada em formato GPX ou JSON
-**para** reutilizar o percurso noutras aplicações.
+**Como utilizador**
+quero que a interface e certas funcionalidades do sistema sejam mais claras, consistentes e fáceis de utilizar
+para ter uma experiência mais fluida ao planear rotas e explorar o mapa.
 
-* **Critérios de Aceitação:**
 
-  * Um botão de exportação está disponível após o cálculo da rota.
-  * O ficheiro é descarregado corretamente.
-  * O formato é compatível com aplicações de mapas externas.
+Inclui apenas melhorias e polimento de UI e UX. Não inclui novas funcionalidades estruturais.
 
 ---
 
@@ -172,10 +167,10 @@ O projeto será desenvolvido em **2 a 3 sprints**, seguindo a metodologia **Scru
 
 ## Entregáveis por Sprint
 
-| Sprint         | Funcionalidades Entregues | Entregáveis                                                                               |
-| -------------- | ------------------------- | ----------------------------------------------------------------------------------------- |
-| **Sprint 1**   | US01 a US05               | Mapa interativo, cálculo e visualização de rotas, painel de informações, limpeza de mapa. |
-| **Sprint 2**   | US06 e US07               | Pesquisa de locais e UI refinada.                                                         |
-| **Sprint 2/3** | US08 a US10               | Funcionalidades opcionais (POIs, exportação), testes e documentação final.                |
+| Sprint       | Funcionalidades Entregues | Entregáveis                                                                               |
+| ------------ | ------------------------- | ----------------------------------------------------------------------------------------- |
+| **Sprint 1** | US01 a US05               | Mapa interativo, cálculo e visualização de rotas, painel de informações, limpeza de mapa. |
+| **Sprint 2** | US06 e US07               | Pesquisa de locais e UI refinada.                                                         |
+| **Sprint 2** | US08 a US10               | Funcionalidades opcionais (POIs, exportação), testes e documentação final.                |
 
 ---
