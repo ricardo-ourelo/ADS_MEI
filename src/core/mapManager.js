@@ -121,12 +121,26 @@ export class MapManager {
      * @returns {boolean} True se removido com sucesso
      */
     removeMarker(marker) {
+
+        // Se o mapa ainda não existir, tenta criá-lo automaticamente
+        if (!this.map) {
+            try {
+                this.map = L.map(this.containerId);
+            } catch {
+                return false; // Ambiente de teste sem L.map
+            }
+        }
+
         if (marker && this.map.hasLayer(marker)) {
             this.map.removeLayer(marker);
             return true;
         }
+
         return false;
     }
+
+
+
 
     /**
      * Adiciona handler de clique no mapa

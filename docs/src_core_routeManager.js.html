@@ -46,20 +46,33 @@ export class RouteManager {
     }
 
     /**
-     * Calcula rota entre dois pontos
+     * Calcula rota entre dois pontos (com paragens intermédias opcionais)
      * @param {Object} start - Coordenadas de início {lat, lng}
      * @param {Object} end - Coordenadas de fim {lat, lng}
      * @param {string} profile - Perfil da rota
-     * @returns {Promise&lt;Object>} Dados da rota calculada
+     * @param {Array&lt;Object>} stops - Paragens intermédias [{lat, lng, address}, ...]
      */
-    async calculateRoute(start, end, profile) {
+    async calculateRoute(start, end, profile, stops = []) {
         const startStr = `${start.lng},${start.lat}`;
         const endStr = `${end.lng},${end.lat}`;
 
+        const waypointsStr = stops
+            .filter(Boolean)
+            .map(s => `${s.lng},${s.lat}`)
+            .join(';');
+
+        const params = new URLSearchParams();
+        params.set('start', startStr);
+        params.set('end', endStr);
+        params.set('profile', profile);
+        if (waypointsStr) {
+            params.set('waypoints', waypointsStr);
+        }
+
         try {
-            console.log(`Calculando rota: perfil=${profile}, start=${startStr}, end=${endStr}`);
-            
-            const response = await fetch(`/api/route?start=${startStr}&amp;end=${endStr}&amp;profile=${profile}`);
+            console.log(`Calculando rota: perfil=${profile}, start=${startStr}, end=${endStr}, stops=${waypointsStr}`);
+
+            const response = await fetch(`/api/route?${params.toString()}`);
             const routeData = await response.json();
 
             if (routeData.code !== 'Ok') {
@@ -75,38 +88,46 @@ export class RouteManager {
         }
     }
 
+
+
     /**
      * Exibe rota no mapa
      * @param {Object} routeData - Dados da rota retornado da api
      * @param {string} profile - Perfil da rota
+     * @param {string} customColor - Cor opcional vinda do tema
      */
-    displayRoute(routeData, profile) {
+    displayRoute(routeData, profile, customColor = null) {
         // Remove rota anterior
         this.clearRoute();
 
         const route = routeData.routes[0];
         const routeCoordinates = route.geometry.coordinates.map(coord => [coord[1], coord[0]]);
-        const color = this.profileManager.getProfileColor(profile);
+
+        // Cor prioritária vem do tema (CSS variable)
+        const themeColor = getComputedStyle(document.body).getPropertyValue('--route-color').trim();
+
+        const color = customColor || themeColor || this.profileManager.getProfileColor(profile);
 
         this.routeLayer = L.polyline(routeCoordinates, {
             color: color,
             weight: 6,
-            opacity: 0.8,
+            opacity: 0.9,
             lineJoin: 'round',
             className: `route-${profile}`
         }).addTo(this.map);
 
         // Adicionar popup informativo
         this.routeLayer.bindPopup(`
-            &lt;div style="text-align: center;">
-                &lt;strong>🗺️ Rota ${this.profileManager.getProfileName(profile)}&lt;/strong>&lt;br>
-                &lt;small>Clique no mapa para fechar&lt;/small>
-            &lt;/div>
-        `);
+        &lt;div style="text-align: center;">
+            &lt;strong>🗺️ Rota ${this.profileManager.getProfileName(profile)}&lt;/strong>&lt;br>
+            &lt;small>Clique no mapa para fechar&lt;/small>
+        &lt;/div>
+    `);
 
         // Ajustar visualização para mostrar toda a rota
         this.map.fitBounds(this.routeLayer.getBounds(), { padding: [20, 20] });
     }
+
 
     /**
      * Remove rota atual do mapa
@@ -171,16 +192,6 @@ export class RouteManager {
         return this.routeLayer !== null;
     }
 
-    /**
-     * Calcula bounding box que contém toda a rota
-     * @returns {L.LatLngBounds|null} Bounds da rota
-     */
-    getRouteBounds() {
-        if (this.routeLayer) {
-            return this.routeLayer.getBounds();
-        }
-        return null;
-    }
 }</code></pre>
         </article>
     </section>
@@ -191,13 +202,13 @@ export class RouteManager {
 </div>
 
 <nav>
-    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-controllers_appManager.html">controllers/appManager</a></li><li><a href="module-controllers_poiManager.html">controllers/poiManager</a></li><li><a href="module-controllers_routeManager.html">controllers/routeManager</a></li><li><a href="module-controllers_searchManager.html">controllers/searchManager</a></li><li><a href="module-core_mapManager.html">core/mapManager</a></li><li><a href="module-core_poiManager.html">core/poiManager</a></li><li><a href="module-core_profileManager.html">core/profileManager</a></li><li><a href="module-core_routeManager.html">core/routeManager</a></li><li><a href="module-core_stateManager.html">core/stateManager</a></li><li><a href="module-ui_uiController.html">ui/uiController</a></li></ul><h3>Classes</h3><ul><li><a href="APIClient.html">APIClient</a></li><li><a href="module-core_mapManager.MapManager.html">MapManager</a></li><li><a href="module-core_poiManager.POIManager.html">POIManager</a></li><li><a href="module-core_profileManager.ProfileManager.html">ProfileManager</a></li><li><a href="module-core_routeManager.RouteManager.html">RouteManager</a></li><li><a href="module-core_stateManager.StateManager.html">StateManager</a></li><li><a href="module-ui_uiController-UIController.html">UIController</a></li></ul>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-controllers_appManager.html">controllers/appManager</a></li><li><a href="module-controllers_poiManager.html">controllers/poiManager</a></li><li><a href="module-controllers_routeManager.html">controllers/routeManager</a></li><li><a href="module-controllers_searchManager.html">controllers/searchManager</a></li><li><a href="module-core_mapManager.html">core/mapManager</a></li><li><a href="module-core_profileManager.html">core/profileManager</a></li><li><a href="module-core_routeManager.html">core/routeManager</a></li><li><a href="module-core_stateManager.html">core/stateManager</a></li><li><a href="module-ui_uiController.html">ui/uiController</a></li></ul><h3>Classes</h3><ul><li><a href="APIClient.html">APIClient</a></li><li><a href="OverpassManager.html">OverpassManager</a></li><li><a href="POIManager_POIManager.html">POIManager</a></li><li><a href="SearchManager.html">SearchManager</a></li><li><a href="module-core_mapManager.MapManager.html">MapManager</a></li><li><a href="module-core_profileManager.ProfileManager.html">ProfileManager</a></li><li><a href="module-core_routeManager.RouteManager.html">RouteManager</a></li><li><a href="module-core_stateManager.StateManager.html">StateManager</a></li><li><a href="module-ui_uiController-UIController.html">UIController</a></li></ul>
 </nav>
 
 <br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.5</a> on Tue Nov 04 2025 10:59:10 GMT+0000 (Hora padrão da Europa Ocidental)
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.5</a> on Wed Dec 03 2025 15:11:42 GMT+0000 (Hora padrão da Europa Ocidental)
 </footer>
 
 <script> prettyPrint(); </script>

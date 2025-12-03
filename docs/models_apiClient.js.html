@@ -278,21 +278,38 @@ class APIClient {
 
 
   /**
-   * Calcula uma rota entre dois pontos via API OSRM.
+   * Calcula uma rota entre dois pontos via API OSRM (com paragens intermédias opcionais).
    * @async
-   * @param {Object} start - Ponto inicial `{ lat, lng }`.
-   * @param {Object} end - Ponto final `{ lat, lng }`.
-   * @param {string} profile - Perfil de transporte ("car", "bike", "foot", etc.).
-   * @returns {Promise&lt;Object>} Dados completos da rota (geoJSON, distância, tempo).
+   * @param {string} start - Ponto inicial no formato "lon,lat".
+   * @param {string} end - Ponto final no formato "lon,lat".
+   * @param {string} profile - Perfil de transporte ("car", "mota", "bicicleta", "walking", etc.).
+   * @param {string|null} [waypoints=null] - String "lon,lat;lon,lat;..." com paragens intermédias.
+   * @returns {Promise&lt;Object>} Dados completos da rota (geoJSON, distância, tempo) com tempos ajustados ao perfil.
    */
-  static async calculateRoute(start, end, profile = 'car') {
+  static async calculateRoute(start, end, profile = 'car', waypoints = null) {
     const config = this.profileConfig[profile] || this.profileConfig.car;
     const osrmProfile = config.osrmProfile;
-    
-    const url = `${this.OSRM_BASE_URL}/route/v1/${osrmProfile}/${start};${end}`;
-    
+
+    // Construir lista de coordenadas: start ; (waypoints...) ; end
+    const coords = [start];
+
+    if (waypoints) {
+      const wpList = waypoints
+        .split(';')
+        .map(s => s.trim())
+        .filter(Boolean);
+
+      coords.push(...wpList);
+    }
+
+    coords.push(end);
+    const coordsStr = coords.join(';');
+
+    const url = `${this.OSRM_BASE_URL}/route/v1/${osrmProfile}/${coordsStr}`;
+
     console.log(`Calculando rota: ${profile} (OSRM: ${osrmProfile})`);
-    
+    console.log(` → Coordenadas: ${coordsStr}`);
+
     const response = await axios.get(url, {
       params: {
         overview: 'full',
@@ -302,10 +319,11 @@ class APIClient {
       }
     });
 
-    // Ajustar os tempos baseado no perfil
     const adjustedData = this.adjustRouteForProfile(response.data, profile);
     return adjustedData;
   }
+
+
 
   /**
    * Ajusta a duração e as anotações de uma rota de acordo com o perfil de transporte.
@@ -388,29 +406,38 @@ class APIClient {
    * console.log(pois.elements); // lista de POIs encontrados
    */
 
-  static async getPointsOfInterest(bbox, types = 'amenity') {
-    const overpassQuery = `
-      [out:json][timeout:25];
-      (
-        node[${types}](${bbox});
-        way[${types}](${bbox});
-        relation[${types}](${bbox});
-      );
-      out body;
-      >;
-      out skel qt;
-    `;
+  static async getPointsOfInterest(bbox, types = 'amenity', limit = 100) {
+  // Opcional: validar bbox/types aqui
+  const overpassQuery = `
+    [out:json][timeout:25];
+    (
+      node[${types}](${bbox});
+      way[${types}](${bbox});
+      relation[${types}](${bbox});
+    );
+    out body ${limit};
+    >;
+    out skel qt ${limit};
+  `;
 
-    const response = await axios.post(this.OVERPASS_BASE_URL, overpassQuery, {
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded'
-      }
-    });
+  try {
+    const response = await axios.post(
+      this.OVERPASS_BASE_URL,
+      `data=${encodeURIComponent(overpassQuery)}`,
+      { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
+    );
 
-    return response.data;
+    const data = response.data;
+    data.elements = data.elements ? data.elements.slice(0, limit) : [];
+    return data;
+  } catch (err) {
+    throw new Error(`Falha ao obter POIs da Overpass: ${err.message}`);
   }
+}
+
 
 }
+
 
 module.exports = APIClient;</code></pre>
         </article>
@@ -422,13 +449,13 @@ module.exports = APIClient;</code></pre>
 </div>
 
 <nav>
-    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-controllers_appManager.html">controllers/appManager</a></li><li><a href="module-controllers_poiManager.html">controllers/poiManager</a></li><li><a href="module-controllers_routeManager.html">controllers/routeManager</a></li><li><a href="module-controllers_searchManager.html">controllers/searchManager</a></li><li><a href="module-core_mapManager.html">core/mapManager</a></li><li><a href="module-core_poiManager.html">core/poiManager</a></li><li><a href="module-core_profileManager.html">core/profileManager</a></li><li><a href="module-core_routeManager.html">core/routeManager</a></li><li><a href="module-core_stateManager.html">core/stateManager</a></li><li><a href="module-ui_uiController.html">ui/uiController</a></li></ul><h3>Classes</h3><ul><li><a href="APIClient.html">APIClient</a></li><li><a href="module-core_mapManager.MapManager.html">MapManager</a></li><li><a href="module-core_poiManager.POIManager.html">POIManager</a></li><li><a href="module-core_profileManager.ProfileManager.html">ProfileManager</a></li><li><a href="module-core_routeManager.RouteManager.html">RouteManager</a></li><li><a href="module-core_stateManager.StateManager.html">StateManager</a></li><li><a href="module-ui_uiController-UIController.html">UIController</a></li></ul>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-controllers_appManager.html">controllers/appManager</a></li><li><a href="module-controllers_poiManager.html">controllers/poiManager</a></li><li><a href="module-controllers_routeManager.html">controllers/routeManager</a></li><li><a href="module-controllers_searchManager.html">controllers/searchManager</a></li><li><a href="module-core_mapManager.html">core/mapManager</a></li><li><a href="module-core_profileManager.html">core/profileManager</a></li><li><a href="module-core_routeManager.html">core/routeManager</a></li><li><a href="module-core_stateManager.html">core/stateManager</a></li><li><a href="module-ui_uiController.html">ui/uiController</a></li></ul><h3>Classes</h3><ul><li><a href="APIClient.html">APIClient</a></li><li><a href="OverpassManager.html">OverpassManager</a></li><li><a href="POIManager_POIManager.html">POIManager</a></li><li><a href="SearchManager.html">SearchManager</a></li><li><a href="module-core_mapManager.MapManager.html">MapManager</a></li><li><a href="module-core_profileManager.ProfileManager.html">ProfileManager</a></li><li><a href="module-core_routeManager.RouteManager.html">RouteManager</a></li><li><a href="module-core_stateManager.StateManager.html">StateManager</a></li><li><a href="module-ui_uiController-UIController.html">UIController</a></li></ul>
 </nav>
 
 <br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.5</a> on Tue Nov 04 2025 10:59:10 GMT+0000 (Hora padrão da Europa Ocidental)
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.5</a> on Wed Dec 03 2025 15:11:42 GMT+0000 (Hora padrão da Europa Ocidental)
 </footer>
 
 <script> prettyPrint(); </script>

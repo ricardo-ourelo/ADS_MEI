@@ -97,7 +97,7 @@ export class ProfileManager {
     generateLegendHTML() {
         let html = '<strong>Legenda de Rotas:</strong>';
 
-        Object.entries(this.profiles).forEach(([profileId, profile]) => {
+        Object.entries(this.profiles).forEach(profile => {
             html += `
                 <div class="legend-item">
                     <div class="legend-color" style="background-color: ${profile.color}"></div>

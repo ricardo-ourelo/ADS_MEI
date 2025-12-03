@@ -84,35 +84,74 @@ export class OverpassManager {
 
         return pois
             .filter(poi => poi.lat && poi.lon)
-            .map(poi => {
-                const formattedPoi = {
-                    id: poi.id || `${poi.lat}-${poi.lon}-${Date.now()}`,
-                    lat: parseFloat(poi.lat),
-                    lon: parseFloat(poi.lon),
-                    type: poi.type || 'node',
-                    tags: poi.tags || {},
-                    name: poi.name || poi.tags?.name || 'Sem nome',
-                    category: this.determineCategory(poi.tags || {})
-                };
-
-                // Calcular distância se centro for fornecido
-                if (centerLat && centerLng) {
-                    formattedPoi.distance = this.calculateDistance(
-                        centerLat, centerLng, 
-                        formattedPoi.lat, formattedPoi.lon
-                    );
-                }
-
-                // Preservar dados adicionais da API
-                if (poi.address) formattedPoi.address = poi.address;
-                if (poi.phone) formattedPoi.phone = poi.phone;
-                if (poi.website) formattedPoi.website = poi.website;
-                if (poi.opening_hours) formattedPoi.opening_hours = poi.opening_hours;
-
-                return formattedPoi;
-            })
+            .map(poi => this._createFormattedPoi(poi, centerLat, centerLng))
             .sort((a, b) => (a.distance || 0) - (b.distance || 0)); // Ordenar por distância
     }
+
+    /**
+     * Constrói um objeto POI formatado combinando base, distância e atributos opcionais.
+     * @param {Object} poi - POI bruto vindo da API interna.
+     * @param {number|null} centerLat - Latitude do centro para cálculo de distância.
+     * @param {number|null} centerLng - Longitude do centro para cálculo de distância.
+     * @returns {Object} POI formatado.
+     */
+    _createFormattedPoi(poi, centerLat, centerLng) {
+        const base = this._extractBasePoi(poi);
+        const withDistance = this._applyDistance(base, centerLat, centerLng);
+        return this._copyOptionalAttributes(withDistance, poi);
+    }
+
+    /**
+     * Extrai os campos base necessários para representar um POI.
+     * @param {Object} poi - Objeto original do POI.
+     * @returns {Object} POI básico com id, coordenadas, tags e categoria.
+     */
+    _extractBasePoi(poi) {
+        return {
+            id: poi.id || `${poi.lat}-${poi.lon}-${Date.now()}`,
+            lat: parseFloat(poi.lat),
+            lon: parseFloat(poi.lon),
+            type: poi.type || 'node',
+            tags: poi.tags || {},
+            name: poi.name || poi.tags?.name || 'Sem nome',
+            category: this.determineCategory(poi.tags || {})
+        };
+    }
+
+    /**
+     * Aplica a distância ao POI caso coordenadas de centro sejam fornecidas.
+     * @param {Object} poi - POI a ser atualizado.
+     * @param {number|null} centerLat - Latitude do centro.
+     * @param {number|null} centerLng - Longitude do centro.
+     * @returns {Object} POI com distância adicionada (ou original).
+     */
+    _applyDistance(poi, centerLat, centerLng) {
+        if (centerLat && centerLng) {
+            return {
+                ...poi,
+                distance: this.calculateDistance(centerLat, centerLng, poi.lat, poi.lon)
+            };
+        }
+        return poi;
+    }
+
+    /**
+     * Copia atributos opcionais como endereço, telefone e website para o POI final.
+     * @param {Object} poi - POI base já parcialmente formatado.
+     * @param {Object} src - Objeto original contendo atributos opcionais.
+     * @returns {Object} POI enriquecido com atributos opcionais.
+     */
+    _copyOptionalAttributes(poi, src) {
+        const out = { ...poi };
+
+        if (src.address) out.address = src.address;
+        if (src.phone) out.phone = src.phone;
+        if (src.website) out.website = src.website;
+        if (src.opening_hours) out.opening_hours = src.opening_hours;
+
+        return out;
+    }
+
 
     /**
      * Determina categoria do POI baseado nas tags
@@ -122,30 +161,52 @@ export class OverpassManager {
     determineCategory(tags) {
         if (!tags) return 'other';
 
-        if (tags.amenity === 'restaurant') return 'restaurant';
-        if (tags.amenity === 'cafe') return 'cafe';
-        if (tags.tourism === 'hotel') return 'hotel';
-        if (tags.amenity === 'bank') return 'bank';
-        if (tags.amenity === 'pharmacy') return 'pharmacy';
-        if (tags.amenity === 'hospital') return 'hospital';
-        if (tags.amenity === 'school') return 'school';
-        if (tags.amenity === 'university') return 'university';
-        if (tags.amenity === 'fuel') return 'fuel';
-        if (tags.amenity === 'parking') return 'parking';
-        if (tags.amenity === 'bus_station') return 'bus_station';
-        if (tags.railway === 'station') return 'train_station';
-        if (tags.shop === 'supermarket') return 'supermarket';
-        if (tags.shop === 'mall') return 'mall';
-        if (tags.amenity === 'cinema') return 'cinema';
-        if (tags.amenity === 'theatre') return 'theatre';
-        if (tags.tourism === 'museum') return 'museum';
-        if (tags.leisure === 'park') return 'park';
-        if (tags.leisure === 'fitness_centre') return 'gym';
-        if (tags.amenity === 'police') return 'police';
-        if (tags.amenity === 'fire_station') return 'fire_station';
+        const mappings = [
+            ['amenity', {
+                restaurant: 'restaurant',
+                cafe: 'cafe',
+                bank: 'bank',
+                pharmacy: 'pharmacy',
+                hospital: 'hospital',
+                school: 'school',
+                university: 'university',
+                fuel: 'fuel',
+                parking: 'parking',
+                bus_station: 'bus_station',
+                cinema: 'cinema',
+                theatre: 'theatre',
+                fire_station: 'fire_station',
+                police: 'police'
+            }],
+            ['tourism', {
+                hotel: 'hotel',
+                museum: 'museum'
+            }],
+            ['shop', {
+                supermarket: 'supermarket',
+                mall: 'mall'
+            }],
+            ['leisure', {
+                park: 'park',
+                fitness_centre: 'gym'
+            }],
+            ['railway', {
+                station: 'train_station'
+            }]
+        ];
+
+        for (const [key, map] of mappings) {
+            const value = tags[key];
+            if (value && map[value]) {
+                return map[value];
+            }
+        }
 
         return 'other';
     }
+
+
+
 
     /**
      * Calcula distância entre dois pontos em metros

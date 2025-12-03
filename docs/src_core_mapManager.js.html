@@ -94,17 +94,6 @@ export class MapManager {
         }
     }
 
-    /**
-     * Adiciona overlay
-     * @param {string} name - Nome do overlay
-     * @param {L.Layer} layer - Camada do overlay
-     */
-    addOverlay(name, layer) {
-        this.overlays[name] = layer;
-        if (this.layerControl) {
-            this.layerControl.addOverlay(layer, name);
-        }
-    }
 
     /**
      * Centraliza mapa nas coordenadas
@@ -160,12 +149,26 @@ export class MapManager {
      * @returns {boolean} True se removido com sucesso
      */
     removeMarker(marker) {
+
+        // Se o mapa ainda não existir, tenta criá-lo automaticamente
+        if (!this.map) {
+            try {
+                this.map = L.map(this.containerId);
+            } catch (e) {
+                return false; // Ambiente de teste sem L.map
+            }
+        }
+
         if (marker &amp;&amp; this.map.hasLayer(marker)) {
             this.map.removeLayer(marker);
             return true;
         }
+
         return false;
     }
+
+
+
 
     /**
      * Adiciona handler de clique no mapa
@@ -175,16 +178,6 @@ export class MapManager {
         this.clickHandlers.push(handler);
     }
 
-    /**
-     * Remove handler de clique
-     * @param {Function} handler - Função handler a remover
-     */
-    removeClickHandler(handler) {
-        const index = this.clickHandlers.indexOf(handler);
-        if (index > -1) {
-            this.clickHandlers.splice(index, 1);
-        }
-    }
 
     /**
      * Processa clique no mapa
@@ -214,32 +207,6 @@ export class MapManager {
      */
     getBounds() {
         return this.map.getBounds();
-    }
-
-    /**
-     * Obtém centro atual do mapa
-     * @returns {L.LatLng} Centro atual
-     */
-    getCenter() {
-        return this.map.getCenter();
-    }
-
-    /**
-     * Obtém zoom atual
-     * @returns {number} Zoom atual
-     */
-    getZoom() {
-        return this.map.getZoom();
-    }
-
-    /**
-     * Calcula distância entre dois pontos
-     * @param {Object} point1 - Primeiro ponto {lat, lng}
-     * @param {Object} point2 - Segundo ponto {lat, lng}
-     * @returns {number} Distância em metros
-     */
-    calculateDistance(point1, point2) {
-        return this.map.distance([point1.lat, point1.lng], [point2.lat, point2.lng]);
     }
 
     /**
@@ -292,13 +259,13 @@ export class MapManager {
 </div>
 
 <nav>
-    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-controllers_appManager.html">controllers/appManager</a></li><li><a href="module-controllers_poiManager.html">controllers/poiManager</a></li><li><a href="module-controllers_routeManager.html">controllers/routeManager</a></li><li><a href="module-controllers_searchManager.html">controllers/searchManager</a></li><li><a href="module-core_mapManager.html">core/mapManager</a></li><li><a href="module-core_poiManager.html">core/poiManager</a></li><li><a href="module-core_profileManager.html">core/profileManager</a></li><li><a href="module-core_routeManager.html">core/routeManager</a></li><li><a href="module-core_stateManager.html">core/stateManager</a></li><li><a href="module-ui_uiController.html">ui/uiController</a></li></ul><h3>Classes</h3><ul><li><a href="APIClient.html">APIClient</a></li><li><a href="module-core_mapManager.MapManager.html">MapManager</a></li><li><a href="module-core_poiManager.POIManager.html">POIManager</a></li><li><a href="module-core_profileManager.ProfileManager.html">ProfileManager</a></li><li><a href="module-core_routeManager.RouteManager.html">RouteManager</a></li><li><a href="module-core_stateManager.StateManager.html">StateManager</a></li><li><a href="module-ui_uiController-UIController.html">UIController</a></li></ul>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-controllers_appManager.html">controllers/appManager</a></li><li><a href="module-controllers_poiManager.html">controllers/poiManager</a></li><li><a href="module-controllers_routeManager.html">controllers/routeManager</a></li><li><a href="module-controllers_searchManager.html">controllers/searchManager</a></li><li><a href="module-core_mapManager.html">core/mapManager</a></li><li><a href="module-core_profileManager.html">core/profileManager</a></li><li><a href="module-core_routeManager.html">core/routeManager</a></li><li><a href="module-core_stateManager.html">core/stateManager</a></li><li><a href="module-ui_uiController.html">ui/uiController</a></li></ul><h3>Classes</h3><ul><li><a href="APIClient.html">APIClient</a></li><li><a href="OverpassManager.html">OverpassManager</a></li><li><a href="POIManager_POIManager.html">POIManager</a></li><li><a href="SearchManager.html">SearchManager</a></li><li><a href="module-core_mapManager.MapManager.html">MapManager</a></li><li><a href="module-core_profileManager.ProfileManager.html">ProfileManager</a></li><li><a href="module-core_routeManager.RouteManager.html">RouteManager</a></li><li><a href="module-core_stateManager.StateManager.html">StateManager</a></li><li><a href="module-ui_uiController-UIController.html">UIController</a></li></ul>
 </nav>
 
 <br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.5</a> on Tue Nov 04 2025 10:59:10 GMT+0000 (Hora padrão da Europa Ocidental)
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.5</a> on Wed Dec 03 2025 15:11:42 GMT+0000 (Hora padrão da Europa Ocidental)
 </footer>
 
 <script> prettyPrint(); </script>

@@ -248,17 +248,18 @@ class UIController {
     applyTheme(themeId) {
         const body = document.body;
 
-        // Remover temas antigos
-        body.classList.forEach(cls => {
+        // Remover temas antigos — iterar sobre uma cópia para evitar pular classes ao modificar
+        Array.from(body.classList).forEach(cls => {
             if (cls.startsWith('theme-')) {
                 body.classList.remove(cls);
             }
         });
 
+
         // Adicionar novo tema
         body.classList.add(`theme-${themeId}`);
 
-        // 🔥 Redesenhar rota com a nova cor do tema, se existir uma rota ativa
+        // Redesenhar rota com a nova cor do tema, se existir uma rota ativa
         const route = this.stateManager.getCurrentRoute();
         if (route && this.stateManager.isReadyForRoute()) {
             const profile = this.stateManager.getActiveProfile();
@@ -298,14 +299,14 @@ class UIController {
 
         // se já existir, destrói e recria (evita duplicados ao reinicializar)
         if (this._stopsSortable) {
-            try { this._stopsSortable.destroy(); } catch(e){/*ignore*/ }
+            try { this._stopsSortable.destroy(); } catch{return; }
         }
 
         // usa um handle específico para não interferir com clique nos inputs
         this._stopsSortable = Sortable.create(container, {
             handle: '.stop-handle',
             animation: 150,
-            onEnd: (evt) => {
+            onEnd: () => {
                 // reindexar stops e recalcular rota se aplicável
                 this.reindexStops();
                 if (this.stateManager.isReadyForRoute()) {
@@ -339,10 +340,10 @@ class UIController {
         // Atualizar array
         this.stops = newStops;
 
-        // 🧹 Apagar todos marcas e redesenhar
+        // Apagar todos marcas e redesenhar
         this.poiManager.clearStopMarkers();
 
-        this.stops.forEach((stop, index) => {
+        this.stops.forEach(stop => {
             if (stop) {
                 this.poiManager.addRouteMarker('stop', stop.lat, stop.lng, stop.address);
             }
@@ -373,12 +374,15 @@ class UIController {
         const row = document.createElement('div');
         row.className = 'stop-row';
         row.dataset.stopIndex = index;
+        row.setAttribute('data-stop-index', String(index));
 
         const input = document.createElement('input');
         input.type = 'text';
         input.placeholder = 'Paragem intermédia...';
         input.dataset.stopIndex = index;
+        input.setAttribute('data-stop-index', String(index));
         input.id = `stop-${index}`;
+
 
         const searchBtn = document.createElement('button');
         searchBtn.type = 'button';
@@ -508,8 +512,6 @@ class UIController {
      * @param {Array} results - Resultados da pesquisa
      * @param {string} field - Campo associado
      */
-
-
     displaySearchResults(results, field) {
     const resultsContainer = document.getElementById('search-results');
 
@@ -552,89 +554,127 @@ class UIController {
     // Mostra a caixa
     resultsContainer.style.display = "block";  // agora mostra sempre
     // Adiciona marcadores
-    this.searchManager.addSearchMarkers(results, (lat, lng, name) => {
-        this.handleLocationSelect(lat, lng, name, field);
-        resultsContainer.style.display = "none";
-        this.closeCurrentPopup();
-    });
-}
+        this.searchManager.addSearchMarkers(results);
+
+    }
 
 
     /**
-     * Manipula seleção de localização
-     * @param {number} lat - Latitude
-     * @param {number} lng - Longitude
-     * @param {string} displayName - Nome do local
-     * @param {string} field - Campo ('start' ou 'end')
+     * Manipula a seleção de localização vinda de pesquisa, popup ou mapa.
+     * Decide automaticamente entre atualizar origem, destino ou paragem intermédia.
+     *
+     * @param {number} lat - Latitude selecionada
+     * @param {number} lng - Longitude selecionada
+     * @param {string} displayName - Nome/descrição da localização
+     * @param {string|null} field - Campo alvo ("start", "end" ou "stop-X")
      */
     handleLocationSelect(lat, lng, displayName, field = null) {
-    const location = { lat, lng, address: displayName };
-    
-    if (!field) {
-        // se não for especificado, decide se é start ou end
-        field = !this.stateManager.getStartLocation() ? 'start' : 'end';
+        const location = { lat, lng, address: displayName };
+
+        // Determinar campo (start/end) automaticamente se não for fornecido
+        if (!field) {
+            field = this._resolveField();
+        }
+
+        if (field.startsWith("stop-")) {
+            this._handleStopSelection(field, location);
+        } else {
+            this._handleStartEndSelection(field, location);
+        }
+
+        this._finalizeLocationSelection();
     }
 
-        if (field.startsWith('stop-')) {
-            const index = parseInt(field.split('-')[1], 10);
+    /**
+     * Determina automaticamente se deve preencher a origem ("start") ou destino ("end").
+     * Se ainda não houver origem definida, escolhe "start". Caso contrário, "end".
+     *
+     * @returns {string} O campo a utilizar ("start" ou "end")
+     */
+    _resolveField() {
+        return this.stateManager.getStartLocation() ? "end" : "start";
+    }
 
-            // Atualiza stops[] internamente
-            this.stops[index] = location;
+    /**
+     * Processa seleção de localização para uma paragem intermédia.
+     *
+     * @param {string} field - Identificador do tipo "stop-0", "stop-1", ...
+     * @param {Object} location - Objeto contendo {lat, lng, address}
+     */
+    _handleStopSelection(field, location) {
+        const index = parseInt(field.split("-")[1], 10);
 
-            // Garantir que existe input
-            let input = document.querySelector(`input[data-stop-index="${index}"]`);
-            if (!input) {
-                const container = document.getElementById('stops-container');
-                if (container) {
-                    this.addStopRow(container, index);
-                    input = document.querySelector(`input[data-stop-index="${index}"]`);
-                }
+        // Atualizar array interno de paragens
+        this.stops[index] = location;
+
+        // Garantir que existe input associado à paragem
+        let input = document.querySelector(`input[data-stop-index="${index}"]`);
+
+        if (!input) {
+            const container = document.getElementById("stops-container");
+            if (container) {
+                this.addStopRow(container, index);
+                input = document.querySelector(`input[data-stop-index="${index}"]`)
+                    || document.getElementById(`stop-${index}`);
             }
-
-            // Preenche input
-            if (input) {
-                input.value = displayName;
-                input.dataset.lat = lat;
-                input.dataset.lng = lng;
-                input.dataset.address = displayName;
-            }
-
-            // Apagar marcador antigo (se existir) e criar novo
-            this.poiManager.removeStopMarker(index);
-            this.poiManager.addRouteMarker('stop', lat, lng, displayName);
-
-            // Fecha popup na hora
-            this.closeCurrentPopup();
-
-            // Recalcular rota se já existir origem e destino
-            if (this.stateManager.isReadyForRoute()) {
-                this.handleCalculateRoute();
-            }
-
-            return;
         }
-        else {
-        // Start / End normais (como já tinhas)
-        document.getElementById(field).value = displayName;
-        
-        if (field === 'start') {
+
+        // Preencher input
+        if (input) {
+            input.value = location.address;
+            input.dataset.lat = location.lat;
+            input.dataset.lng = location.lng;
+            input.dataset.address = location.address;
+        }
+
+        // Atualizar marcador no mapa
+        this.poiManager.removeStopMarker(index);
+        this.poiManager.addRouteMarker("stop", location.lat, location.lng, location.address);
+
+        // Recalcular rota se origem e destino existirem
+        if (this.stateManager.isReadyForRoute()) {
+            this.handleCalculateRoute();
+        }
+    }
+
+    /**
+     * Processa seleção de localização para origem ("start") ou destino ("end").
+     *
+     * @param {string} field - "start" ou "end"
+     * @param {Object} location - Objeto contendo {lat, lng, address}
+     */
+    _handleStartEndSelection(field, location) {
+        const input = document.getElementById(field);
+
+        if (input) {
+            input.value = location.address;
+        }
+
+        if (field === "start") {
             this.stateManager.setStartLocation(location);
         } else {
             this.stateManager.setEndLocation(location);
         }
     }
 
+    /**
+     * Realiza ações finais após seleção de localização:
+     * - limpa resultados de pesquisa
+     * - remove marcadores temporários
+     * - fecha popups
+     * - limpa rota atual para ser recalculada
+     */
+    _finalizeLocationSelection() {
+        const resultsContainer = document.getElementById("search-results");
 
+        if (resultsContainer) {
+            resultsContainer.innerHTML = "";
+        }
 
-    // Fechar resultados e popups
-    document.getElementById('search-results').innerHTML = '';
-    this.searchManager.clearSearchMarkers();
-    this.closeCurrentPopup();
-    
-    // Limpar rota atual (vai ser recalculada)
-    this.clearCurrentRoute();
+        this.searchManager.clearSearchMarkers();
+        this.closeCurrentPopup();
+        this.clearCurrentRoute(); // rota será recalculada automaticamente
     }
-
 
 
     /**
@@ -824,9 +864,8 @@ class UIController {
 
     /**
      * Atualiza perfil da rota
-     * @param {string} profile - ID do perfil
      */
-    updateRouteProfile(profile) {
+    updateRouteProfile() {
         // Se há rota ativa, recalcular com novo perfil
         const currentRoute = this.stateManager.getCurrentRoute();
         if (currentRoute && this.stateManager.isReadyForRoute()) {
@@ -918,8 +957,10 @@ class UIController {
         if (button) {
             button.innerHTML = '⏳';
             button.disabled = true;
+            button.classList.add("loading");
         }
     }
+
 
     /**
      * Esconde estado de loading
@@ -930,6 +971,7 @@ class UIController {
         if (button) {
             button.innerHTML = '🔍';
             button.disabled = false;
+            button.classList.remove("loading");
         }
     }
 
@@ -940,6 +982,7 @@ class UIController {
         const btn = document.getElementById('calculate-route-btn');
         btn.innerHTML = '⏳ Calculando...';
         btn.disabled = true;
+        btn.classList.add("loading");
     }
 
     /**
@@ -949,7 +992,9 @@ class UIController {
         const btn = document.getElementById('calculate-route-btn');
         btn.innerHTML = 'Calcular Rota';
         btn.disabled = false;
+        btn.classList.remove("loading");
     }
+
 
     /**
      * Exibe notificação visual no painel

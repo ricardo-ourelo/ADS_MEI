@@ -31,6 +31,7 @@ import { StateManager } from "../core/stateManager.js";
 import { RouteManager } from "../core/routeManager.js";
 import { ProfileManager } from "../core/profileManager.js";
 import { POIManager } from "../core/poiManager.js";
+import {SearchManager} from "../core/searchManager.js";
 
 /**
  * @file uiController.js
@@ -51,21 +52,28 @@ class UIController {
         this.isInitialized = false;
         this.profileManager = null;
         this.routeManager = null;
+        this.searchManager = null;
         this.currentPopup = null;
         this.poiManager = null;
 
+        this.stops = [];
+        this.stopMarkers = [];
 
+        this.poiCategories = [
+            'restaurant', 'cafe', 'hotel', 'bank', 'pharmacy',
+            'hospital', 'fuel', 'parking', 'supermarket', 'park'
+        ];
     }
+
 
 
     /**
      * Inicializa a aplicação
      * @param {string} mapContainerId - ID do container do mapa
      */
-    
     async initialize(mapContainerId = 'map') {
         try {
-            // Inicializar gerenciadores
+            // Inicializar managers
             this.mapManager = new MapManager(mapContainerId);
             this.stateManager = new StateManager();
             this.profileManager = new ProfileManager();
@@ -73,14 +81,18 @@ class UIController {
             // Inicializar mapa
             this.mapManager.initialize();
             
-            // Inicializar gerenciadores dependentes do mapa
+            // Inicializar ‘gestores’ dependentes do mapa
             this.routeManager = new RouteManager(this.mapManager.getMap(), this.profileManager);
+            this.searchManager = new SearchManager(this.mapManager.getMap());
             this.poiManager = new POIManager(this.mapManager.getMap());
             // Configurar event listeners
             this.setupEventListeners();
             this.setupStateListeners();
 
-            // Obter localização do usuário
+            // Configurar UI inicial
+            this.initializeUI();
+
+            // Obter localização do utilizador
             await this.getUserLocation();
             
             this.isInitialized = true;
@@ -92,59 +104,32 @@ class UIController {
         }
     }
 
-
-    
-    /**
-     * Obtém localização do usuário
-     */
-    async getUserLocation() {
-        if (!navigator.geolocation) {
-            this.showNotification('Geolocalização não suportada', 'warning');
-            return;
-        }
-        
-        navigator.geolocation.getCurrentPosition(
-            (position) => {
-                const lat = position.coords.latitude;
-                const lng = position.coords.longitude;
-                
-                this.stateManager.setUserLocation({ lat, lng });
-                this.mapManager.setView(lat, lng, 13);
-                
-                // Adicionar marcador da localização atual
-                this.poiManager.addCurrentLocationMarker(lat, lng, 'Sua localização atual');
-                
-                // Preencher origem automaticamente
-                document.getElementById('start').value = 'Minha Localização';
-                this.stateManager.setStartLocation({ 
-                    lat, 
-                    lng, 
-                    address: 'Minha Localização' 
-                });
-                
-            },
-            (error) => {
-                console.log('Não foi possível obter localização:', error);
-                this.showNotification('Não foi possível obter sua localização', 'warning');
-            },
-            {
-                timeout: 5000,
-                maximumAge: 600000
-            }
-        );
-    }
-
-
     /**
      * Configura event listeners da UI
      */
     setupEventListeners() {
         // Event listeners dos botões        
         document.getElementById('calculate-route-btn').addEventListener('click', () => this.handleCalculateRoute());
-        // document.getElementById('search-sart-btn').addEventListener('click', () => this.handleSearch('start'));
-        // document.getElementById('search-end-btn').addEventListener('click', () => this.handleSearch('end'));
+        document.getElementById('search-start-btn').addEventListener('click', () => this.handleSearch('start'));
+        document.getElementById('search-end-btn').addEventListener('click', () => this.handleSearch('end'));
         document.getElementById('clear-route-btn').addEventListener('click', () => this.handleClearRoute());
-        
+
+        document.addEventListener("click", (e) => {
+            const box = document.getElementById("search-results");
+            const isClickInside = box.contains(e.target);
+
+            const isSearchInput =
+                e.target.id === "start" ||
+                e.target.id === "end";
+
+            const isSearchButton =
+                e.target.classList.contains("search-btn") || e.target.classList.contains("stop-search-btn");
+
+            if (!isClickInside &amp;&amp; !isSearchInput &amp;&amp; !isSearchButton) {
+                box.style.display = "none";
+            }
+        });
+
         // Event listeners dos inputs (Enter)
         document.getElementById('start').addEventListener('keypress', (e) => {
             if (e.key === 'Enter') this.handleSearch('start');
@@ -158,16 +143,38 @@ class UIController {
          document.getElementById('profile').addEventListener('change', (e) => {
              this.stateManager.setActiveProfile(e.target.value);
          });
-        
-        // Handler global para seleção de localização
+
+        // Handler global para seleção de localização via markers/popups de pesquisa
+        // usa window.__lastSearchField para saber onde aplicar (se existir)
         window.selectSearchLocation = (lat, lng, displayName) => {
-            this.handleLocationSelect(lat, lng, displayName);
+            const field = window.__lastSearchField || null;
+            this.handleLocationSelect(lat, lng, displayName, field);
         };
-        
+
+
         // Handler de clique no mapa
         this.mapManager.addClickHandler((e) => {
             this.handleMapClick(e);
         });
+    }
+
+    /**
+     * Cria uma nova paragem intermédia a partir de um clique no mapa.
+     * Escolhe automaticamente o próximo índice livre (0,1,2,...)
+     */
+    addStopFromMap(lat, lng, displayName) {
+        if (!this.stops) {
+            this.stops = [];
+        }
+
+        let index = this.stops.findIndex(s => s === null || s === undefined);
+
+        if (index === -1) {
+            index = this.stops.length;
+        }
+
+        const field = `stop-${index}`;
+        this.handleLocationSelect(lat, lng, displayName, field);
     }
 
     /**
@@ -200,10 +207,391 @@ class UIController {
             this.clearAllMarkers();
         });
     }
+    /**
+     * Inicializa componentes da UI
+     */
+    initializeUI() {
+    // Adicionar legenda
+    const legendContent = this.profileManager.generateLegendHTML();
+    this.mapManager.addLegend(legendContent);
+
+    // Popular dropdown de perfis
+    this.populateProfileDropdown();
+
+    // Adicionar controles de POI
+    this.addPOIControls();
+
+    // Carregar POIs iniciais
+    //this.loadInitialPOIs();
+
+    this.initStopsUI();
+    this.initThemeSelector();
+
+    }
+
+    /**
+     * Inicializa UI das paragens intermédias
+     */
+    initStopsUI() {
+        const container = document.getElementById('stops-container');
+        const addBtn = document.getElementById('add-stop-btn');
+
+        if (!container || !addBtn) return;
+
+        addBtn.addEventListener('click', () => {
+            this.addStopRow(container);
+        });
+        // Depois de configurar botões, inicializa Sortable (irá encontrar as rows se existirem)
+        this.initStopsSortable();
+    }
+
+    /**
+     * Inicializa o seletor de tema do painel
+     */
+    initThemeSelector() {
+        const select = document.getElementById('theme-select');
+        if (!select) return;
+
+        // Tema guardado ou padrão
+        const savedTheme = localStorage.getItem('panelTheme') || 'ocean';
+
+        // Remove classes antigas e aplica a guardada
+        this.applyTheme(savedTheme);
+
+        // Atualiza o select
+        select.value = savedTheme;
+
+        // Listener de mudança
+        select.addEventListener('change', (e) => {
+            const newTheme = e.target.value;
+            this.applyTheme(newTheme);
+            localStorage.setItem('panelTheme', newTheme);
+        });
+    }
+
+    /**
+     * Aplica uma classe de tema ao &lt;body>
+     * @param {string} themeId - ex: 'ocean', 'dark'
+     */
+    applyTheme(themeId) {
+        const body = document.body;
+
+        // Remover temas antigos — iterar sobre uma cópia para evitar pular classes ao modificar
+        Array.from(body.classList).forEach(cls => {
+            if (cls.startsWith('theme-')) {
+                body.classList.remove(cls);
+            }
+        });
 
 
+        // Adicionar novo tema
+        body.classList.add(`theme-${themeId}`);
 
-    
+        // Redesenhar rota com a nova cor do tema, se existir uma rota ativa
+        const route = this.stateManager.getCurrentRoute();
+        if (route &amp;&amp; this.stateManager.isReadyForRoute()) {
+            const profile = this.stateManager.getActiveProfile();
+            const newColor = getComputedStyle(document.body).getPropertyValue('--route-color').trim();
+            this.routeManager.displayRoute(route, profile, newColor);
+        }
+
+        // Atualizar cor dos marcadores também
+        this.updateAllMarkersTheme();
+    }
+
+    /**
+     * Atualiza os marcadores já existentes para refletir o novo tema
+     */
+    updateAllMarkersTheme() {
+        // Reaplicar origem e destino se existirem
+        const start = this.stateManager.getStartLocation();
+        if (start) this.updateLocationMarker('start', start);
+
+        const end = this.stateManager.getEndLocation();
+        if (end) this.updateLocationMarker('end', end);
+
+        // Reaplicar paragens se existirem
+        this.stops.forEach((stop, index) => {
+            if (stop) this.updateStopMarker(index, stop);
+        });
+    }
+
+
+    /**
+     * Inicializa Sortable apenas para as paragens (stops)
+     * Não mexe em start/end — garante compatibilidade com a lógica existente.
+     */
+    initStopsSortable() {
+        const container = document.getElementById('stops-container');
+        if (!container || typeof Sortable === 'undefined') return;
+
+        // se já existir, destrói e recria (evita duplicados ao reinicializar)
+        if (this._stopsSortable) {
+            try { this._stopsSortable.destroy(); } catch(e){/*ignore*/ }
+        }
+
+        // usa um handle específico para não interferir com clique nos inputs
+        this._stopsSortable = Sortable.create(container, {
+            handle: '.stop-handle',
+            animation: 150,
+            onEnd: (evt) => {
+                // reindexar stops e recalcular rota se aplicável
+                this.reindexStops();
+                if (this.stateManager.isReadyForRoute()) {
+                    this.handleCalculateRoute();
+                }
+            }
+        });
+    }
+
+    /**
+     * Reindexa os inputs de paragens para stop-0, stop-1... e actualiza this.stops e marcadores.
+     * Deve ser chamada após reorder, remoção ou adição.
+     */
+    reindexStops() {
+        const rows = Array.from(document.querySelectorAll('#stops-container .stop-row'));
+        const newStops = [];
+
+        // Guardar stops válidos
+        rows.forEach((row, newIndex) => {
+            const input = row.querySelector('input');
+            row.dataset.stopIndex = newIndex;
+            input.dataset.stopIndex = newIndex;
+            input.id = `stop-${newIndex}`;
+
+            const lat = input.dataset.lat ? Number(input.dataset.lat) : null;
+            const lng = input.dataset.lng ? Number(input.dataset.lng) : null;
+            const address = input.value || input.dataset.address || null;
+            newStops[newIndex] = (lat &amp;&amp; lng) ? { lat, lng, address } : null;
+        });
+
+        // Atualizar array
+        this.stops = newStops;
+
+        // Apagar todos marcas e redesenhar
+        this.poiManager.clearStopMarkers();
+
+        this.stops.forEach((stop, index) => {
+            if (stop) {
+                this.poiManager.addRouteMarker('stop', stop.lat, stop.lng, stop.address);
+            }
+        });
+    }
+
+
+    /**
+     * Cria uma linha de paragem (input + botões)
+     * @param {HTMLElement} container - div #stops-container
+     * @param {number|null} forcedIndex - índice específico para a paragem (opcional)
+     */
+    addStopRow(container, forcedIndex = null) {
+
+        let index;
+        if (forcedIndex !== null &amp;&amp; forcedIndex !== undefined) {
+            index = forcedIndex;
+            if (this.stops[index] === undefined) {
+                this.stops[index] = null;
+            }
+        } else {
+            index = this.stops.length;
+            if (this.stops[index] === undefined) {
+                this.stops[index] = null;
+            }
+        }
+
+        const row = document.createElement('div');
+        row.className = 'stop-row';
+        row.dataset.stopIndex = index;
+        row.setAttribute('data-stop-index', String(index));
+
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.placeholder = 'Paragem intermédia...';
+        input.dataset.stopIndex = index;
+        input.setAttribute('data-stop-index', String(index));
+        input.id = `stop-${index}`;
+
+
+        const searchBtn = document.createElement('button');
+        searchBtn.type = 'button';
+        searchBtn.textContent = '🔍';
+        searchBtn.className = 'stop-search-btn';
+
+        const removeBtn = document.createElement('button');
+        removeBtn.type = 'button';
+        removeBtn.textContent = '✖';
+
+        removeBtn.className = 'stop-remove-btn';
+
+        searchBtn.addEventListener('click', () => {
+            this.handleSearch(`stop-${index}`);
+        });
+
+        input.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                this.handleSearch(`stop-${index}`);
+            }
+        });
+
+        removeBtn.addEventListener('click', () => {
+            // Remover marcador associado antes de reindexar
+            const i = index;
+            if (this.stopMarkers &amp;&amp; this.stopMarkers[i]) {
+                this.mapManager.removeMarker(this.stopMarkers[i]);
+                this.stopMarkers[i] = null;
+            }
+            // Remover linha da UI
+            container.removeChild(row);
+            this.reindexStops();
+
+            // limpar marcador relacionado, se existia
+            if (this.stopMarkers &amp;&amp; this.stopMarkers.length) {
+                // reindexStops já removeu marcadores obsoletos
+            }
+
+            // recalcular rota se necessário
+            if (this.stateManager.isReadyForRoute() &amp;&amp; this.routeManager.hasActiveRoute()) {
+                this.handleCalculateRoute();
+            }
+        });
+
+        // handle visual para arrastar (necessário para Sortable.handle)
+        const handle = document.createElement('span');
+        handle.className = 'stop-handle';
+        handle.textContent = '≡';
+        handle.title = 'Arrastar para reordenar';
+
+        // inserir handle primeiro no row
+        row.appendChild(handle);
+        row.appendChild(input);
+        row.appendChild(searchBtn);
+        row.appendChild(removeBtn);
+        container.appendChild(row);
+
+        // Após criar a row, (re)inicializar Sortable para registar o novo elemento
+        this.initStopsSortable();
+
+    }
+
+    /**
+     * Popula dropdown de perfis
+     */
+    populateProfileDropdown() {
+        const profileSelect = document.getElementById('profile');
+        const profiles = this.profileManager.getAllProfiles();
+
+        profileSelect.innerHTML = '';
+
+        Object.entries(profiles).forEach(([profileId, profile]) => {
+            const option = document.createElement('option');
+            option.value = profileId;
+            option.textContent = `${profile.icon} ${profile.name}`;
+            profileSelect.appendChild(option);
+        });
+    }
+
+    /**
+     * Manipula pesquisa de localização a partir do painel (lupa / Enter nos inputs).
+     * @param {string} field - Campo ('start', 'end' ou 'stop-&lt;index>')
+     */
+    async handleSearch(field) {
+        const input = document.getElementById(field);
+        if (!input) {
+            console.warn(`Input com id "${field}" não encontrado.`);
+            return;
+        }
+
+        const query = input.value.trim();
+
+        if (!query) {
+            this.showNotification('Por favor, digite um endereço para pesquisar', 'warning');
+            return;
+        }
+        try {
+            this.showLoading(field);
+
+            // guardar o campo actual para que os botões dos markers saibam para onde preencher
+            window.__lastSearchField = field;
+
+            const results = await this.searchManager.searchLocation(query);
+
+            if (!results || results.length === 0) {
+                
+                this.showNotification('Nenhum resultado encontrado para essa pesquisa', 'warning');
+                document.getElementById('search-results').innerHTML = '';
+                return;
+            }
+
+            this.displaySearchResults(results, field);
+        console.log(results);
+
+        } catch (error) {
+            console.error(error);
+            this.showNotification('Erro ao pesquisar localização: ' + error.message, 'error');
+        } finally {
+            this.hideLoading(field);
+            this.searchManager.clearSearchMarkers();
+        }
+    }
+
+
+    /**
+     * Exibe resultados da pesquisa
+     * @param {Array} results - Resultados da pesquisa
+     * @param {string} field - Campo associado
+     */
+
+
+    displaySearchResults(results, field) {
+    const resultsContainer = document.getElementById('search-results');
+
+    if (!results || results.length === 0) {
+        resultsContainer.innerHTML = '&lt;div class="search-result-item">Nenhum resultado encontrado&lt;/div>';
+        resultsContainer.style.display = "block";
+        return;
+    }
+
+    resultsContainer.innerHTML = '';
+
+    results.forEach(result => {
+        const item = document.createElement('div');
+        item.className = 'search-result-item';
+
+        item.innerHTML = `
+            &lt;div class="sr-title">${result.display_name}&lt;/div>
+            &lt;div class="sr-coords">📍 ${result.lat}, ${result.lon}&lt;/div>
+        `;
+
+        item.onclick = () => {
+            const input = document.getElementById(field);
+
+            if (input) {
+                input.value = result.display_name;
+                input.dataset.lat = result.lat;
+                input.dataset.lng = result.lon;
+                input.dataset.address = result.display_name;
+            }
+
+            this.handleLocationSelect(result.lat, result.lon, result.display_name, field);
+
+            resultsContainer.style.display = "none";  // esconder
+            this.searchManager.clearSearchMarkers();
+            this.closeCurrentPopup();
+        };
+
+        resultsContainer.appendChild(item);
+    });
+    // Mostra a caixa
+    resultsContainer.style.display = "block";  // agora mostra sempre
+    // Adiciona marcadores
+    this.searchManager.addSearchMarkers(results, (lat, lng, name) => {
+        this.handleLocationSelect(lat, lng, name, field);
+        resultsContainer.style.display = "none";
+        this.closeCurrentPopup();
+    });
+}
+
+
     /**
      * Manipula seleção de localização
      * @param {number} lat - Latitude
@@ -212,31 +600,75 @@ class UIController {
      * @param {string} field - Campo ('start' ou 'end')
      */
     handleLocationSelect(lat, lng, displayName, field = null) {
-        const location = { lat, lng, address: displayName };
-        
-        if (!field) {
-            // Determinar campo baseado no estado atual
-            field = !this.stateManager.getStartLocation() ? 'start' : 'end';
+    const location = { lat, lng, address: displayName };
+    
+    if (!field) {
+        // se não for especificado, decide se é start ou end
+        field = !this.stateManager.getStartLocation() ? 'start' : 'end';
+    }
+
+        if (field.startsWith('stop-')) {
+            const index = parseInt(field.split('-')[1], 10);
+
+            // Atualiza stops[] internamente
+            this.stops[index] = location;
+
+            // Garantir que existe input
+            let input = document.querySelector(`input[data-stop-index="${index}"]`);
+            if (!input) {
+                const container = document.getElementById('stops-container');
+                if (container) {
+                    this.addStopRow(container, index);
+                    input = document.querySelector(`input[data-stop-index="${index}"]`) || document.getElementById(`stop-${index}`);
+                }
+            }
+
+
+            // Preenche input
+            if (input) {
+                input.value = displayName;
+                input.dataset.lat = lat;
+                input.dataset.lng = lng;
+                input.dataset.address = displayName;
+            }
+
+            // Apagar marcador antigo (se existir) e criar novo
+            this.poiManager.removeStopMarker(index);
+            this.poiManager.addRouteMarker('stop', lat, lng, displayName);
+
+            // Fecha popup na hora
+            this.closeCurrentPopup();
+
+            // Recalcular rota se já existir origem e destino
+            if (this.stateManager.isReadyForRoute()) {
+                this.handleCalculateRoute();
+            }
+
+            return;
         }
-        
-        // Atualizar input
+        else {
+        // Start / End normais (como já tinhas)
         document.getElementById(field).value = displayName;
         
-        // Atualizar estado
         if (field === 'start') {
             this.stateManager.setStartLocation(location);
         } else {
             this.stateManager.setEndLocation(location);
         }
-
-        // Fechar resultados e popups
-        ///document.getElementById('search-results').innerHTML = '';
-        ///this.searchManager.clearSearchMarkers();
-        this.closeCurrentPopup();
-        
-        // Remover rota atual se existir
-        this.clearCurrentRoute();
     }
+
+
+
+    // Fechar resultados e popups
+    document.getElementById('search-results').innerHTML = '';
+    this.searchManager.clearSearchMarkers();
+    this.closeCurrentPopup();
+    
+    // Limpar rota atual (vai ser recalculada)
+    this.clearCurrentRoute();
+    }
+
+
 
     /**
      * Fecha o popup atual do mapa
@@ -250,24 +682,6 @@ class UIController {
         this.mapManager.getMap().closePopup();
     }
 
-
-    async reverseGeocode(lat, lng) {
-        try {
-            const response = await fetch(`/api/search?q=${lat},${lng}&amp;format=json`);
-            
-            if (!response.ok) {
-                throw new Error(`Erro HTTP: ${response.status}`);
-            }
-
-            const results = await response.json();
-            return results.length > 0 ? results[0] : null;
-
-        } catch (error) {
-            console.error('Erro na geocodificação reversa:', error);
-            throw error;
-        }
-    }
-
     /**
      * Manipula clique no mapa
      * @param {L.LeafletMouseEvent} event - Evento de clique
@@ -276,7 +690,7 @@ class UIController {
         const { lat, lng } = event.latlng;
         
         try {
-            const result = await this.reverseGeocode(lat, lng);/// this.searchManager.reverseGeocode(lat, lng);
+            const result = await this.searchManager.reverseGeocode(lat, lng);
             
             if (result) {
                 this.showLocationPopup(lat, lng, result.display_name);
@@ -293,7 +707,9 @@ class UIController {
      * @param {string} displayName - Nome do local
      */
     showLocationPopup(lat, lng, displayName) {
-        this.closeCurrentPopup(); // Fechar popup anterior
+        this.closeCurrentPopup(); 
+        
+        const safeName = displayName.replace(/'/g, "\\'");
         
         this.currentPopup = L.popup()
             .setLatLng([lat, lng])
@@ -301,17 +717,21 @@ class UIController {
                 &lt;div style="text-align: center;">
                     &lt;strong>📍 Localização&lt;/strong>&lt;br>
                     &lt;small>${displayName}&lt;/small>&lt;br>&lt;br>
-                    &lt;button onclick="window.uiController.handleLocationSelect(${lat}, ${lng}, '${displayName.replace(/'/g, "\\'")}', 'start')">
+                    &lt;button onclick="window.uiController.handleLocationSelect(${lat}, ${lng}, '${safeName}', 'start')">
                         🟢 Usar como Origem
                     &lt;/button>
-                    &lt;button onclick="window.uiController.handleLocationSelect(${lat}, ${lng}, '${displayName.replace(/'/g, "\\'")}', 'end')">
+                    &lt;button onclick="window.uiController.handleLocationSelect(${lat}, ${lng}, '${safeName}', 'end')">
                         🔴 Usar como Destino
+                    &lt;/button>
+                    &lt;button onclick="window.uiController.addStopFromMap(${lat}, ${lng}, '${safeName}')">
+                        🔵 Usar como Paragem
                     &lt;/button>
                 &lt;/div>
             `)
             .openOn(this.mapManager.getMap());
     }
-    
+
+
 
     /**
      * Atualiza marcador de localização no mapa
@@ -369,13 +789,16 @@ class UIController {
         const start = this.stateManager.getStartLocation();
         const end = this.stateManager.getEndLocation();
         const profile = this.stateManager.getActiveProfile();
-        
+        const stops = this.stops.filter(Boolean); 
+
         try {
             this.showRouteLoading();
             
-            const routeData = await this.routeManager.calculateRoute(start, end, profile);
-            this.routeManager.displayRoute(routeData, profile);
-            
+            const routeData = await this.routeManager.calculateRoute(start, end, profile, stops);
+            const routeColor = getComputedStyle(document.body).getPropertyValue('--route-color').trim();
+            this.routeManager.displayRoute(routeData, profile, routeColor);
+
+
             this.stateManager.setCurrentRoute(routeData);
             
         } catch (error) {
@@ -385,15 +808,17 @@ class UIController {
         }
     }
 
+
     /**
      * Manipula limpeza de rota
      */
     handleClearRoute() {
         this.stateManager.clearAll();
         this.clearCurrentRoute();
-        ///this.searchManager.clearSearchMarkers();
+        this.searchManager.clearSearchMarkers();
         this.clearAllMarkers();
         this.closeCurrentPopup();
+        this.poiManager.clearStopMarkers();
         
         // Limpar inputs
         document.getElementById('start').value = '';
@@ -410,7 +835,24 @@ class UIController {
      */
     clearAllMarkers() {
         this.poiManager.clearRouteMarkers();
-        ///this.searchManager.clearSearchMarkers();
+
+        this.searchManager.clearSearchMarkers();
+
+        if (this.stopMarkers &amp;&amp; this.stopMarkers.length) {
+            this.stopMarkers.forEach(marker => {
+                if (marker) {
+                    this.mapManager.removeMarker(marker);
+                }
+            });
+        }
+        this.stopMarkers = [];
+
+        this.stops = [];
+
+        const stopsContainer = document.getElementById('stops-container');
+        if (stopsContainer) {
+            stopsContainer.innerHTML = '';
+        }
     }
 
     /**
@@ -449,7 +891,7 @@ class UIController {
                 &lt;strong>🎯 Perfil:&lt;/strong> ${routeInfo.profileName}
             &lt;/div>
             ${routeInfo.originalDuration ? `
-            &lt;div class="info-item" style="font-size: 0.8em; color: #666;">
+            &lt;div class="-item route-adjust-note" >
                 &lt;em>* Tempo ajustado para ${routeInfo.profileName}&lt;/em>
             &lt;/div>
             ` : ''}
@@ -458,6 +900,46 @@ class UIController {
         routeInfoElement.classList.remove('hidden');
     }
 
+
+    /**
+     * Obtém localização do utilizador
+     */
+    async getUserLocation() {
+        if (!navigator.geolocation) {
+            this.showNotification('Geolocalização não suportada', 'warning');
+            return;
+        }
+
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                const lat = position.coords.latitude;
+                const lng = position.coords.longitude;
+
+                this.stateManager.setUserLocation({ lat, lng });
+                this.mapManager.setView(lat, lng, 13);
+
+                // Adicionar marcador da localização atual
+                this.poiManager.addCurrentLocationMarker(lat, lng, 'Sua localização atual');
+
+                // Preencher origem automaticamente
+                document.getElementById('start').value = 'Minha Localização';
+                this.stateManager.setStartLocation({
+                    lat,
+                    lng,
+                    address: 'Minha Localização'
+                });
+
+            },
+            (error) => {
+                console.log('Não foi possível obter localização:', error);
+                this.showNotification('Não foi possível obter sua localização', 'warning');
+            },
+            {
+                timeout: 5000,
+                maximumAge: 600000
+            }
+        );
+    }
 
 
     /**
@@ -469,8 +951,10 @@ class UIController {
         if (button) {
             button.innerHTML = '⏳';
             button.disabled = true;
+            button.classList.add("loading");
         }
     }
+
 
     /**
      * Esconde estado de loading
@@ -481,6 +965,7 @@ class UIController {
         if (button) {
             button.innerHTML = '🔍';
             button.disabled = false;
+            button.classList.remove("loading");
         }
     }
 
@@ -491,6 +976,7 @@ class UIController {
         const btn = document.getElementById('calculate-route-btn');
         btn.innerHTML = '⏳ Calculando...';
         btn.disabled = true;
+        btn.classList.add("loading");
     }
 
     /**
@@ -500,41 +986,119 @@ class UIController {
         const btn = document.getElementById('calculate-route-btn');
         btn.innerHTML = 'Calcular Rota';
         btn.disabled = false;
+        btn.classList.remove("loading");
     }
 
+
     /**
-     * Exibe notificação
-     * @param {string} message - Mensagem
+     * Exibe notificação visual no painel
+     * @param {string} message - Mensagem da notificação
      * @param {string} type - Tipo ('info', 'success', 'warning', 'error')
      */
     showNotification(message, type = 'info') {
-        // Implementação simplificada - pode ser expandida com uma lib de notificações
-        const typeIcons = {
+        const icons = {
             'info': 'ℹ️',
             'success': '✅',
             'warning': '⚠️',
             'error': '❌'
         };
-        console.log(`${message}`)
+
+        // Se já existir uma notificação na tela, remove
+        const prev = document.querySelector('.ui-notification');
+        if (prev) prev.remove();
+
+        // Criar container
+        const notif = document.createElement('div');
+        notif.className = `ui-notification ui-notification-${type}`;
+        notif.innerHTML = `
+        &lt;span class="ui-notification-icon">${icons[type]}&lt;/span>
+        &lt;span class="ui-notification-message">${message}&lt;/span>
+    `;
+
+        // Adicionar ao painel lateral (aside)
+        const panel = document.querySelector('#page-map aside');
+        panel.insertBefore(notif, panel.firstChild);
+
+        // Remover automaticamente após 3.2s
+        setTimeout(() => {
+            notif.classList.add('fade-out');
+            setTimeout(() => notif.remove(), 300);
+        }, 3200);
+    }
+
+    // over passs
+
+    /**
+     * Adiciona controles de POI à interface
+     */
+    addPOIControls() {
+        // Event listeners para POIs
+        // document.getElementById('load-pois-btn').addEventListener('click', () => this.handleLoadPOIs());
+        document.querySelectorAll(".poi-icon").forEach(btn => {
+            btn.addEventListener("click", () => {
+                const type = btn.dataset.type;
+                // loadPois(type);
+                this.handleLoadPOIs(type);
+            });
+        });
+        document.getElementById('clear-pois-btn').addEventListener('click', () => this.handleClearPOIs());
+    }
+
+    /**
+     * Manipula carregamento de POIs
+     */
+    async handleLoadPOIs(selectedCategory) {
+        this.handleClearPOIs();
+        // const categorySelect = document.getElementById('poi-category');
+        // const selectedCategory = categorySelect.value;
+        const loadButton = document.getElementById('clear-pois-btn');
         
-        // alert(`${typeIcons[type] || 'ℹ️'} ${message}`);
+        const categories = selectedCategory === 'all' 
+            ? this.poiCategories 
+            : [selectedCategory];
+
+        try {
+            // Mostrar loading
+            loadButton.innerHTML = '⏳';
+            loadButton.disabled = true;
+            
+            this.showNotification('Carregando pontos de interesse...', 'info');
+            
+            const stats = await this.poiManager.loadPOIsForVisibleArea(categories);
+           
+            this.showNotification(stats.message, 'success');
+            
+        } catch (error) {
+            console.error('Erro ao carregar POIs:', error);
+            this.showNotification('Erro ao carregar POIs: ' + error.message, 'error');
+        } finally {
+            // Restaurar botão
+            loadButton.innerHTML = '🗑️';
+            loadButton.disabled = false;
+        }
     }
 
     /**
-     * Obtém instância do gerenciador de mapa
-     * @returns {MapManager} Gerenciador de mapa
+     * Manipula limpeza de POIs
      */
-    getMapManager() {
-        return this.mapManager;
+    handleClearPOIs() {
+        const removed = this.poiManager.clearAllPOIs();
+        this.showNotification(`Removidos ${removed} pontos de interesse`, 'info');
     }
 
+
     /**
-     * Obtém instância do gerenciador de estado
-     * @returns {StateManager} Gerenciador de estado
+     * Usa POI como localização (origem/destino)
+     * @param {number} lat - Latitude
+     * @param {number} lng - Longitude
+     * @param {string} name - Nome do POI
      */
-    getStateManager() {
-        return this.stateManager;
+    usePOIAsLocation(lat, lng, name) {
+        // Determinar se deve usar como origem ou destino
+        const field = !this.stateManager.getStartLocation() ? 'start' : 'end';
+        this.handleLocationSelect(lat, lng, name, field);
     }
+
 
     /**
      * Verifica se está inicializado
@@ -548,9 +1112,13 @@ class UIController {
 
 }
 
-
 // Exportar para uso global
 window.uiController = new UIController();
+
+// Adicionar função global para uso do POI
+window.uiController.usePOIAsLocation = function(lat, lng, name) {
+    window.uiController.usePOIAsLocation(lat, lng, name);
+};
 
 // Inicializar quando o DOM estiver carregado
 document.addEventListener('DOMContentLoaded', () => {
@@ -568,13 +1136,13 @@ export default UIController;
 </div>
 
 <nav>
-    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-controllers_appManager.html">controllers/appManager</a></li><li><a href="module-controllers_poiManager.html">controllers/poiManager</a></li><li><a href="module-controllers_routeManager.html">controllers/routeManager</a></li><li><a href="module-controllers_searchManager.html">controllers/searchManager</a></li><li><a href="module-core_mapManager.html">core/mapManager</a></li><li><a href="module-core_poiManager.html">core/poiManager</a></li><li><a href="module-core_profileManager.html">core/profileManager</a></li><li><a href="module-core_routeManager.html">core/routeManager</a></li><li><a href="module-core_stateManager.html">core/stateManager</a></li><li><a href="module-ui_uiController.html">ui/uiController</a></li></ul><h3>Classes</h3><ul><li><a href="APIClient.html">APIClient</a></li><li><a href="module-core_mapManager.MapManager.html">MapManager</a></li><li><a href="module-core_poiManager.POIManager.html">POIManager</a></li><li><a href="module-core_profileManager.ProfileManager.html">ProfileManager</a></li><li><a href="module-core_routeManager.RouteManager.html">RouteManager</a></li><li><a href="module-core_stateManager.StateManager.html">StateManager</a></li><li><a href="module-ui_uiController-UIController.html">UIController</a></li></ul>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-controllers_appManager.html">controllers/appManager</a></li><li><a href="module-controllers_poiManager.html">controllers/poiManager</a></li><li><a href="module-controllers_routeManager.html">controllers/routeManager</a></li><li><a href="module-controllers_searchManager.html">controllers/searchManager</a></li><li><a href="module-core_mapManager.html">core/mapManager</a></li><li><a href="module-core_profileManager.html">core/profileManager</a></li><li><a href="module-core_routeManager.html">core/routeManager</a></li><li><a href="module-core_stateManager.html">core/stateManager</a></li><li><a href="module-ui_uiController.html">ui/uiController</a></li></ul><h3>Classes</h3><ul><li><a href="APIClient.html">APIClient</a></li><li><a href="OverpassManager.html">OverpassManager</a></li><li><a href="POIManager_POIManager.html">POIManager</a></li><li><a href="SearchManager.html">SearchManager</a></li><li><a href="module-core_mapManager.MapManager.html">MapManager</a></li><li><a href="module-core_profileManager.ProfileManager.html">ProfileManager</a></li><li><a href="module-core_routeManager.RouteManager.html">RouteManager</a></li><li><a href="module-core_stateManager.StateManager.html">StateManager</a></li><li><a href="module-ui_uiController-UIController.html">UIController</a></li></ul>
 </nav>
 
 <br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.5</a> on Tue Nov 04 2025 10:59:10 GMT+0000 (Hora padrão da Europa Ocidental)
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.5</a> on Wed Dec 03 2025 15:11:42 GMT+0000 (Hora padrão da Europa Ocidental)
 </footer>
 
 <script> prettyPrint(); </script>

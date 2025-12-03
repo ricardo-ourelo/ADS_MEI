@@ -74,10 +74,9 @@ export class SearchManager {
     /**
      * Adiciona marcadores de pesquisa no mapa
      * @param {Array} results - Resultados da pesquisa
-     * @param {Function} onLocationSelect - Callback quando localização é selecionada
      * @returns {Array} Array de marcadores criados
      */
-    addSearchMarkers(results, onLocationSelect) {
+    addSearchMarkers(results) {
         // Limpar marcadores anteriores
         this.clearSearchMarkers();
 
