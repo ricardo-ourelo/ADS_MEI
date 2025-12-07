@@ -2,6 +2,7 @@
  * @file app.js
  * @description Configuração principal do servidor Express.
  * Define middlewares, rotas e inicializa o servidor.
+ * @module models/apiClient
  */
 
 const axios = require('axios');

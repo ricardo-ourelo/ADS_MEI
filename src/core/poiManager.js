@@ -1,21 +1,16 @@
 /**
- * @file poiManager.js
- * @description
- * Classe responsável por gerir marcadores no mapa Leaflet, incluindo:
- * - Localização atual do utilizador
- * - Marcadores da rota (origem, destino, paragens intermédias)
- * - Remoção e controle de marcadores
- *
- * NOTA: Esta classe não calcula rotas; apenas gere a visualização de pins.
+ /**
+ * @module core/poiManager
  */
 
 import { OverpassManager } from "../core/overpassManager.js";
 
+/**
+ * @class
+ * @description Gere marcadores, POIs e elementos visuais no mapa Leaflet.
+ */
 export class POIManager {
-    /**
-     * Cria instância do gestor de POIs.
-     * @param {L.Map} map - Instância do Leaflet Map.
-     */
+
     constructor(map) {
         /** @type {L.Map} */
         this.map = map;

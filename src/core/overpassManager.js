@@ -1,7 +1,13 @@
 /**
- * Gerencia consultas à API interna para obter Pontos de Interesse
+ * @module core/overpassManager
+ */
+
+/**
+ * @class
+ * @description Gerencia consultas à API interna para obter Pontos de Interesse.
  */
 export class OverpassManager {
+
     constructor() {
         this.baseUrl = '/api/poi'; // URL da sua API interna
         this.timeout = 30000; // 30 segundos

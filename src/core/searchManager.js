@@ -1,7 +1,13 @@
 /**
- * Gerencia pesquisas de localização e geocodificação
+ * @module core/searchManager
+ */
+
+/**
+ * @class
+ * @description Gerencia pesquisas de localização e geocodificação.
  */
 export class SearchManager {
+
     constructor(map) {
         this.map = map;
         this.searchMarkers = [];
