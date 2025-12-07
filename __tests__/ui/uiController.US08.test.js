@@ -2,7 +2,7 @@
  * @jest-environment jsdom
  */
 
-import UIController from "../src/ui/uiController.js";
+import UIController from "../../src/ui/uiController.js";
 import {beforeEach, describe, expect, jest} from "@jest/globals";
 
 describe("US08 — Barra de POIs", () => {
@@ -53,4 +53,43 @@ describe("US08 — Barra de POIs", () => {
 
         expect(ui.handleClearPOIs).toHaveBeenCalled();
     });
+
+    test("handleClearPOIs mostra notificação com número removido", () => {
+        const ui = new UIController();
+        ui.poiManager = { clearAllPOIs: jest.fn(() => 7) };
+        ui.showNotification = jest.fn();
+
+        ui.handleClearPOIs();
+
+        expect(ui.showNotification).toHaveBeenCalledWith("Removidos 7 pontos de interesse", "info");
+    });
+
+    test("handleLoadPOIs mostra loading, chama load, e restaura botão", async () => {
+        document.body.innerHTML = `
+        <button id="clear-pois-btn">🗑️</button>
+        <div id="page-map"><aside></aside></div>
+    `;
+
+        const ui = new UIController();
+
+        ui.poiManager = {
+            clearAllPOIs: jest.fn(),
+            loadPOIsForVisibleArea: jest.fn(async () => ({ message: "OK" }))
+        };
+
+        ui.showNotification = jest.fn();
+
+        const btn = document.getElementById("clear-pois-btn");
+
+        await ui.handleLoadPOIs("cafe");
+
+        // botão em loading no início
+        expect(btn.innerHTML).toBe("🗑️");
+
+        // notificação chamada
+        expect(ui.showNotification).toHaveBeenCalled();
+    });
+
+
+
 });

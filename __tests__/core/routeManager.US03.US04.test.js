@@ -1,11 +1,11 @@
 /**
  * @jest-environment jsdom
- * @file routeManager.test.US03.US04.js
+ * @file routeManager.US03.US04.test.js
  * @description Testes automatizados para US03 — Cálculo e exibição de rotas (OSRM).
  */
 import { jest } from "@jest/globals";
-import { RouteManager } from "../src/core/routeManager.js";
-import { ProfileManager } from "../src/core/profileManager.js";
+import { RouteManager } from "../../src/core/routeManager.js";
+import { ProfileManager } from "../../src/core/profileManager.js";
 
 // Mock do Leaflet
 global.L = {

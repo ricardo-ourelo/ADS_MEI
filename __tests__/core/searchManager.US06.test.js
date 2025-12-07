@@ -3,7 +3,7 @@
  */
 
 import { jest } from "@jest/globals";
-import { SearchManager } from "../src/core/searchManager.js";
+import { SearchManager } from "../../src/core/searchManager.js";
 
 global.fetch = jest.fn();
 

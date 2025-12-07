@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Module: backend/controllers/poiManager</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Module: backend/controllers/poiManager</h1>
+
+    
+
+
+
+
+<section>
+
+<header>
+    
+        
+            
+        
+    
+</header>
+
+<article>
+    <div class="container-overview">
+    
+        
+            <div class="description"><p>Controller responsável por obter Pontos de Interesse (POIs) a partir do backend
+ou de APIs externas, conforme a bounding box e os tipos definidos pelo utilizador.</p></div>
+        
+
+        
+            
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="backend_controllers_poiManager.js.html">backend/controllers/poiManager.js</a>, <a href="backend_controllers_poiManager.js.html#line1">line 1</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        
+    
+    </div>
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+        <h3 class="subsection-title">Members</h3>
+
+        
+            
+<h4 class="name" id="~poiManager"><span class="type-signature">(inner, constant) </span>poiManager<span class="type-signature"> :object</span></h4>
+
+
+
+
+<div class="description">
+    <p>Controlador de Pontos de Interesse.</p>
+</div>
+
+
+
+    <h5>Type:</h5>
+    <ul>
+        <li>
+            
+<span class="param-type">object</span>
+
+
+        </li>
+    </ul>
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="backend_controllers_poiManager.js.html">backend/controllers/poiManager.js</a>, <a href="backend_controllers_poiManager.js.html#line15">line 15</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+        
+    
+
+    
+        <h3 class="subsection-title">Methods</h3>
+
+        
+            
+
+    
+
+    
+    <h4 class="name" id="~getPOI"><span class="type-signature">(async, inner) </span>getPOI<span class="signature">(req, res)</span><span class="type-signature"> &rarr; {Promise.&lt;void>}</span></h4>
+    
+
+    
+
+
+
+<div class="description">
+    <p>Obtém uma lista de POIs com base na área geográfica (bounding box) e tipo.
+Endpoint: <code>/api/poi?bbox=&lt;sul, oeste, norte, este&gt;&amp;types=&lt;tipo&gt;</code></p>
+</div>
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>req</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">object</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>Pedido HTTP do Express.</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>res</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">object</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>Resposta HTTP do Express.</p></td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="backend_controllers_poiManager.js.html">backend/controllers/poiManager.js</a>, <a href="backend_controllers_poiManager.js.html#line16">line 16</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns:</h5>
+
+        
+<div class="param-desc">
+    <p>Envia um JSON com os POIs encontrados.</p>
+</div>
+
+
+
+<dl>
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type">Promise.&lt;void></span>
+
+
+    </dd>
+</dl>
+
+    
+
+
+
+
+
+        
+    
+
+    
+
+    
+</article>
+
+</section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-backend_controllers_appManager.html">backend/controllers/appManager</a></li><li><a href="module-backend_controllers_poiManager.html">backend/controllers/poiManager</a></li><li><a href="module-backend_controllers_routeManager.html">backend/controllers/routeManager</a></li><li><a href="module-backend_controllers_searchManager.html">backend/controllers/searchManager</a></li><li><a href="module-backend_models_apiClient.html">backend/models/apiClient</a></li><li><a href="module-frontend_core_OverpassManager.html">frontend/core/OverpassManager</a></li><li><a href="module-frontend_core_mapManager.html">frontend/core/mapManager</a></li><li><a href="module-frontend_core_poiManager.html">frontend/core/poiManager</a></li><li><a href="module-frontend_core_profileManager.html">frontend/core/profileManager</a></li><li><a href="module-frontend_core_routeManager.html">frontend/core/routeManager</a></li><li><a href="module-frontend_core_searchManager.html">frontend/core/searchManager</a></li><li><a href="module-frontend_core_stateManager.html">frontend/core/stateManager</a></li><li><a href="module-frontend_ui_uiController.html">frontend/ui/uiController</a></li></ul><h3>Classes</h3><ul><li><a href="module-backend_models_apiClient-APIClient.html">APIClient</a></li><li><a href="module-frontend_core_OverpassManager-OverpassManager.html">OverpassManager</a></li><li><a href="module-frontend_core_mapManager-OverpassManager.html">OverpassManager</a></li><li><a href="module-frontend_core_poiManager-POIManager.html">POIManager</a></li><li><a href="module-frontend_core_profileManager.ProfileManager.html">ProfileManager</a></li><li><a href="module-frontend_core_routeManager.RouteManager.html">RouteManager</a></li><li><a href="module-frontend_core_searchManager-SearchManager.html">SearchManager</a></li><li><a href="module-frontend_core_stateManager.StateManager.html">StateManager</a></li><li><a href="module-frontend_ui_uiController-UIController.html">UIController</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.5</a> on Sun Dec 07 2025 17:25:18 GMT+0000 (Hora padrão da Europa Ocidental)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

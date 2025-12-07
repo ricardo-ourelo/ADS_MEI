@@ -2,8 +2,8 @@
  * @jest-environment jsdom
  */
 
-import { RouteManager } from "../src/core/routeManager.js";
-import { ProfileManager } from "../src/core/profileManager.js";
+import { RouteManager } from "../../src/core/routeManager.js";
+import { ProfileManager } from "../../src/core/profileManager.js";
 import {describe, jest} from "@jest/globals";
 
 

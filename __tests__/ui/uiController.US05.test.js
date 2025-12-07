@@ -5,7 +5,7 @@
  */
 
 import { jest } from "@jest/globals";
-import UIController from "../src/ui/uiController.js"; // import default
+import UIController from "../../src/ui/uiController.js"; // import default
 
 describe("US05 — Limpeza e reinício da rota", () => {
     let uiController;

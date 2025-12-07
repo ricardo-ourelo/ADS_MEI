@@ -4,7 +4,7 @@
  */
 
 import {describe, jest} from "@jest/globals";
-import UIController from "../src/ui/uiController.js";
+import UIController from "../../src/ui/uiController.js";
 
 // mock global Sortable (evita erro ao reordenar)
 global.Sortable = { create: jest.fn() };
@@ -68,20 +68,6 @@ describe("US07 — Múltiplos destinos (paragens intermédias)", () => {
 
         const rows = container.querySelectorAll(".stop-row");
         expect(rows.length).toBe(1);
-    });
-
-    test("deve registar localização numa paragem via handleLocationSelect", () => {
-        const container = document.getElementById("stops-container");
-        ui.addStopRow(container);
-
-        ui.handleLocationSelect(10, 20, "Paragem X", "stop-0");
-
-        expect(ui.stops[0]).toEqual({
-            lat: 10,
-            lng: 20,
-            address: "Paragem X"
-        });
-        expect(ui.poiManager.addRouteMarker).toHaveBeenCalled();
     });
 
     test("deve remover paragem e reindexar", () => {

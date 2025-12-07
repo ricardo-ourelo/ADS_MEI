@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: frontend/core/routeManager.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: frontend/core/routeManager.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>/**
+ * @file routeManager.js
+ * @description Classe responsável por calcular e exibir rotas no mapa Leaflet,
+ * comunicando com a API backend `/api/route` e gerindo a camada de rotas.
+ * @module frontend/core/routeManager
+ */
+
+/**
+ * Gerencia cálculo e exibição de rotas.
+ * @class
+ */
+export class RouteManager {
+    constructor(map, profileManager) {
+        this.map = map;
+        this.profileManager = profileManager;
+        this.routeLayer = null;
+        this.currentRouteData = null;
+    }
+
+    /**
+     * Calcula rota entre dois pontos (com paragens intermédias opcionais)
+     * @param {Object} start - Coordenadas de início {lat, lng}
+     * @param {Object} end - Coordenadas de fim {lat, lng}
+     * @param {string} profile - Perfil da rota
+     * @param {Array&lt;Object>} stops - Paragens intermédias [{lat, lng, address}, ...]
+     */
+    async calculateRoute(start, end, profile, stops = []) {
+        const startStr = `${start.lng},${start.lat}`;
+        const endStr = `${end.lng},${end.lat}`;
+
+        const waypointsStr = stops
+            .filter(Boolean)
+            .map(s => `${s.lng},${s.lat}`)
+            .join(';');
+
+        const params = new URLSearchParams();
+        params.set('start', startStr);
+        params.set('end', endStr);
+        params.set('profile', profile);
+        if (waypointsStr) {
+            params.set('waypoints', waypointsStr);
+        }
+
+        try {
+            console.log(`Calculando rota: perfil=${profile}, start=${startStr}, end=${endStr}, stops=${waypointsStr}`);
+
+            const response = await fetch(`/api/route?${params.toString()}`);
+            const routeData = await response.json();
+
+            if (routeData.code !== 'Ok') {
+                throw new Error(routeData.message || 'Erro ao calcular rota');
+            }
+
+            this.currentRouteData = routeData;
+            return routeData;
+
+        } catch (error) {
+            console.error('Erro no cálculo da rota:', error);
+            throw error;
+        }
+    }
+
+
+
+    /**
+     * Exibe rota no mapa
+     * @param {Object} routeData - Dados da rota retornado da api
+     * @param {string} profile - Perfil da rota
+     * @param {string} customColor - Cor opcional vinda do tema
+     */
+    displayRoute(routeData, profile, customColor = null) {
+        // Remove rota anterior
+        this.clearRoute();
+
+        const route = routeData.routes[0];
+        const routeCoordinates = route.geometry.coordinates.map(coord => [coord[1], coord[0]]);
+
+        // Cor prioritária vem do tema (CSS variable)
+        const themeColor = getComputedStyle(document.body).getPropertyValue('--route-color').trim();
+
+        const color = customColor || themeColor || this.profileManager.getProfileColor(profile);
+
+        this.routeLayer = L.polyline(routeCoordinates, {
+            color: color,
+            weight: 6,
+            opacity: 0.9,
+            lineJoin: 'round',
+            className: `route-${profile}`
+        }).addTo(this.map);
+
+        // Adicionar popup informativo
+        this.routeLayer.bindPopup(`
+        &lt;div style="text-align: center;">
+            &lt;strong>🗺️ Rota ${this.profileManager.getProfileName(profile)}&lt;/strong>&lt;br>
+            &lt;small>Clique no mapa para fechar&lt;/small>
+        &lt;/div>
+    `);
+
+        // Ajustar visualização para mostrar toda a rota
+        this.map.fitBounds(this.routeLayer.getBounds(), { padding: [20, 20] });
+    }
+
+
+    /**
+     * Remove rota atual do mapa
+     */
+    clearRoute() {
+        if (this.routeLayer) {
+            this.map.removeLayer(this.routeLayer);
+            this.routeLayer = null;
+        }
+        this.currentRouteData = null;
+    }
+
+    /**
+     * Obtém informações da rota atual
+     * @param {Object} routeData - Dados da rota
+     * @param {string} profile - Perfil da rota
+     * @returns {Object} Informações formatadas da rota
+     */
+    getRouteInfo(routeData, profile) {
+        const route = routeData.routes[0];
+        const distance = (route.distance / 1000).toFixed(2);
+        const durationMinutes = Math.round(route.duration / 60);
+        const durationHours = Math.floor(durationMinutes / 60);
+        const remainingMinutes = durationMinutes % 60;
+        
+        // Formatar tempo
+        let durationText = '';
+        if (durationHours > 0) {
+            durationText = `${durationHours}h ${remainingMinutes}min`;
+        } else {
+            durationText = `${durationMinutes} min`;
+        }
+
+        // Calcular velocidade média
+        const distanceKm = route.distance / 1000;
+        const durationHoursDecimal = route.duration / 3600;
+        const avgSpeed = durationHoursDecimal > 0 ? (distanceKm / durationHoursDecimal).toFixed(1) : '0';
+
+        return {
+            distance: distance,
+            duration: durationText,
+            avgSpeed: avgSpeed,
+            profileName: this.profileManager.getProfileName(profile),
+            profileIcon: this.profileManager.getProfileIcon(profile),
+            originalDuration: route.originalDuration
+        };
+    }
+
+    /**
+     * Obtém dados da rota atual
+     * @returns {Object|null} Dados da rota atual
+     */
+    getCurrentRoute() {
+        return this.currentRouteData;
+    }
+
+    /**
+     * Verifica se há rota ativa
+     * @returns {boolean} True se há rota ativa
+     */
+    hasActiveRoute() {
+        return this.routeLayer !== null;
+    }
+
+}</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-backend_controllers_appManager.html">backend/controllers/appManager</a></li><li><a href="module-backend_controllers_poiManager.html">backend/controllers/poiManager</a></li><li><a href="module-backend_controllers_routeManager.html">backend/controllers/routeManager</a></li><li><a href="module-backend_controllers_searchManager.html">backend/controllers/searchManager</a></li><li><a href="module-backend_models_apiClient.html">backend/models/apiClient</a></li><li><a href="module-frontend_core_OverpassManager.html">frontend/core/OverpassManager</a></li><li><a href="module-frontend_core_mapManager.html">frontend/core/mapManager</a></li><li><a href="module-frontend_core_poiManager.html">frontend/core/poiManager</a></li><li><a href="module-frontend_core_profileManager.html">frontend/core/profileManager</a></li><li><a href="module-frontend_core_routeManager.html">frontend/core/routeManager</a></li><li><a href="module-frontend_core_searchManager.html">frontend/core/searchManager</a></li><li><a href="module-frontend_core_stateManager.html">frontend/core/stateManager</a></li><li><a href="module-frontend_ui_uiController.html">frontend/ui/uiController</a></li></ul><h3>Classes</h3><ul><li><a href="module-backend_models_apiClient-APIClient.html">APIClient</a></li><li><a href="module-frontend_core_OverpassManager-OverpassManager.html">OverpassManager</a></li><li><a href="module-frontend_core_mapManager-OverpassManager.html">OverpassManager</a></li><li><a href="module-frontend_core_poiManager-POIManager.html">POIManager</a></li><li><a href="module-frontend_core_profileManager.ProfileManager.html">ProfileManager</a></li><li><a href="module-frontend_core_routeManager.RouteManager.html">RouteManager</a></li><li><a href="module-frontend_core_searchManager-SearchManager.html">SearchManager</a></li><li><a href="module-frontend_core_stateManager.StateManager.html">StateManager</a></li><li><a href="module-frontend_ui_uiController-UIController.html">UIController</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.5</a> on Sun Dec 07 2025 17:25:18 GMT+0000 (Hora padrão da Europa Ocidental)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

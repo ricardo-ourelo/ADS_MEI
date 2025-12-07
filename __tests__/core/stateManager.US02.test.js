@@ -5,7 +5,7 @@
  */
 
 import { jest } from "@jest/globals";
-import { StateManager } from "../src/core/stateManager.js";
+import { StateManager } from "../../src/core/stateManager.js";
 
 describe("US02 — Seleção de origem e destino", () => {
     let stateManager;

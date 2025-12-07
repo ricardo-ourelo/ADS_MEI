@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: frontend/core/searchManager.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: frontend/core/searchManager.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>/**
+ * @file searchManager.js
+ * @description
+ * Classe responsável por realizar pesquisas de localização (via Nominatim backend),
+ * bem como geocodificação reversa e gestão de marcadores de resultados.
+ *
+ * Funcionalidades:
+ * - Pesquisa textual por endereço
+ * - Geocodificação reversa (coordenadas → endereço)
+ * - Cache local de resultados
+ * - Gestão de marcadores de pesquisa no mapa
+ *
+ * @module frontend/core/searchManager
+ */
+
+/**
+ * Classe para pesquisas textuais e geocodificação reversa.
+ * @class SearchManager
+ */
+export class SearchManager {
+    constructor(map) {
+        this.map = map;
+        this.searchMarkers = [];
+        this.searchCache = new Map();
+    }
+
+    /**
+     * Pesquisa localização por endereço
+     * @param {string} query - Endereço a pesquisar
+     * @param {number} limit - Número máximo de resultados
+     * @returns {Promise&lt;Array>} Array de resultados
+     */
+    async searchLocation(query, limit = 5) {
+        if (!query || query.trim() === '') {
+            throw new Error('Query de pesquisa não pode estar vazia');
+        }
+
+        // Verificar cache
+        const cacheKey = `search_${query}_${limit}`;
+        if (this.searchCache.has(cacheKey)) {
+            return this.searchCache.get(cacheKey);
+        }
+
+        try {
+            const response = await fetch(`/api/search?q=${encodeURIComponent(query)}&amp;limit=${limit}`);
+            
+            if (!response.ok) {
+                throw new Error(`Erro HTTP: ${response.status}`);
+            }
+
+            const results = await response.json();
+            
+            // Armazenar no cache (expira após 5 minutos)
+            this.searchCache.set(cacheKey, results);
+            setTimeout(() => {
+                this.searchCache.delete(cacheKey);
+            }, 300000);
+
+            return results;
+
+        } catch (error) {
+            console.error('Erro na pesquisa:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Geocodificação reversa (coordenadas para endereço)
+     * @param {number} lat - Latitude
+     * @param {number} lng - Longitude
+     * @returns {Promise&lt;Object>} Dados do local
+     */
+    async reverseGeocode(lat, lng) {
+        try {
+            const response = await fetch(`/api/search?q=${lat},${lng}&amp;format=json`);
+            
+            if (!response.ok) {
+                throw new Error(`Erro HTTP: ${response.status}`);
+            }
+
+            const results = await response.json();
+            return results.length > 0 ? results[0] : null;
+
+        } catch (error) {
+            console.error('Erro na geocodificação reversa:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Adiciona marcadores de pesquisa no mapa
+     * @param {Array} results - Resultados da pesquisa
+     * @returns {Array} Array de marcadores criados
+     */
+    addSearchMarkers(results) {
+        // Limpar marcadores anteriores
+        this.clearSearchMarkers();
+
+        const markers = results.map(result => {
+            const marker = L.marker([result.lat, result.lon])
+                .addTo(this.map)
+                .bindPopup(`
+                    &lt;strong>${result.display_name}&lt;/strong>&lt;br>
+                    &lt;button onclick="window.selectSearchLocation(${result.lat}, ${result.lon}, '${result.display_name.replace(/'/g, "\\'")}')">
+                        Selecionar Localização
+                    &lt;/button>
+                `);
+
+            this.searchMarkers.push(marker);
+            return marker;
+        });
+
+        return markers;
+    }
+
+    /**
+     * Limpa todos os marcadores de pesquisa
+     */
+    clearSearchMarkers() {
+        this.searchMarkers.forEach(marker => {
+            this.map.removeLayer(marker);
+        });
+        this.searchMarkers = [];
+    }
+
+}</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-backend_controllers_appManager.html">backend/controllers/appManager</a></li><li><a href="module-backend_controllers_poiManager.html">backend/controllers/poiManager</a></li><li><a href="module-backend_controllers_routeManager.html">backend/controllers/routeManager</a></li><li><a href="module-backend_controllers_searchManager.html">backend/controllers/searchManager</a></li><li><a href="module-backend_models_apiClient.html">backend/models/apiClient</a></li><li><a href="module-frontend_core_OverpassManager.html">frontend/core/OverpassManager</a></li><li><a href="module-frontend_core_mapManager.html">frontend/core/mapManager</a></li><li><a href="module-frontend_core_poiManager.html">frontend/core/poiManager</a></li><li><a href="module-frontend_core_profileManager.html">frontend/core/profileManager</a></li><li><a href="module-frontend_core_routeManager.html">frontend/core/routeManager</a></li><li><a href="module-frontend_core_searchManager.html">frontend/core/searchManager</a></li><li><a href="module-frontend_core_stateManager.html">frontend/core/stateManager</a></li><li><a href="module-frontend_ui_uiController.html">frontend/ui/uiController</a></li></ul><h3>Classes</h3><ul><li><a href="module-backend_models_apiClient-APIClient.html">APIClient</a></li><li><a href="module-frontend_core_OverpassManager-OverpassManager.html">OverpassManager</a></li><li><a href="module-frontend_core_mapManager-OverpassManager.html">OverpassManager</a></li><li><a href="module-frontend_core_poiManager-POIManager.html">POIManager</a></li><li><a href="module-frontend_core_profileManager.ProfileManager.html">ProfileManager</a></li><li><a href="module-frontend_core_routeManager.RouteManager.html">RouteManager</a></li><li><a href="module-frontend_core_searchManager-SearchManager.html">SearchManager</a></li><li><a href="module-frontend_core_stateManager.StateManager.html">StateManager</a></li><li><a href="module-frontend_ui_uiController-UIController.html">UIController</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.5</a> on Sun Dec 07 2025 17:25:18 GMT+0000 (Hora padrão da Europa Ocidental)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

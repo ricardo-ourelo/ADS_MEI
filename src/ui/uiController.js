@@ -771,18 +771,21 @@ class UIController {
      */
     clearCurrentRoute() {
         this.routeManager.clearRoute();
-        
-        //Esconder informações da rota
+
+        // Esconder informações da rota (mas só se existir no DOM)
         const routeInfoElement = document.getElementById('route-info');
-        routeInfoElement.classList.add('hidden');
-        routeInfoElement.innerHTML = '';
-        
+        if (routeInfoElement) {
+            routeInfoElement.classList.add('hidden');
+            routeInfoElement.innerHTML = '';
+        }
+
         // Resetar estilo do botão de calcular rota
         const calculateBtn = document.getElementById('calculate-route-btn');
         if (calculateBtn) {
             calculateBtn.style.background = '';
         }
     }
+
 
     /**
      * Manipula cálculo de rota

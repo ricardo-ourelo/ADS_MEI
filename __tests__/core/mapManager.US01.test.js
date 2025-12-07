@@ -5,7 +5,7 @@
  */
 
 import { jest } from "@jest/globals";
-import { MapManager } from "../src/core/mapManager.js";
+import { MapManager } from "../../src/core/mapManager.js";
 
 global.L = {
     map: jest.fn(() => ({

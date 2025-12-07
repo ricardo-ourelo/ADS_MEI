@@ -2,7 +2,7 @@
  * @jest-environment jsdom
  */
 
-import { POIManager } from "../src/core/poiManager.js";
+import { POIManager } from "../../src/core/poiManager.js";
 import {beforeEach, describe, expect, jest} from "@jest/globals";
 
 // MOCK DO LEAFLET — obrigatório

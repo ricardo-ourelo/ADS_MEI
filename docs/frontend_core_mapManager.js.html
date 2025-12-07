@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: frontend/core/mapManager.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: frontend/core/mapManager.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>/**
+ * @file mapManager.js
+ * @description Classe responsável por inicializar, renderizar e gerir o mapa Leaflet,
+ * incluindo camadas, marcadores e eventos de clique.
+ * @module frontend/core/mapManager
+ */
+
+/**
+ * Classe para comunicação e construção de queries Overpass.
+ * @class OverpassManager
+ */
+export class MapManager {
+    constructor(containerId) {
+        this.containerId = containerId;
+        this.map = null;
+        this.baseLayers = {};
+        this.overlays = {};
+        this.layerControl = null;
+        this.clickHandlers = [];
+    }
+
+    /**
+     * Inicializa o mapa
+     * @param {Array} center - Centro do mapa [lat, lng]
+     * @param {number} zoom - Zoom inicial
+     * @returns {L.Map} Instância do mapa
+     */
+    initialize(center = [-14.2350, -51.9253], zoom = 4) {
+        this.map = L.map(this.containerId).setView(center, zoom);
+
+        // Adicionar camada base do OpenStreetMap
+        this.baseLayers.OpenStreetMap = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© &lt;a href="https://www.openstreetmap.org/copyright">OpenStreetMap&lt;/a> contributors',
+            maxZoom: 18
+        }).addTo(this.map);
+
+        // Adicionar camadas base alternativas
+        this.addBaseLayer('OpenStreetMap_HOT', 'https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png', 'OpenStreetMap HOT');
+        this.addBaseLayer('OpenTopoMap', 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', 'OpenTopoMap');
+
+        // Configurar controle de layers
+        this.layerControl = L.control.layers(this.baseLayers, this.overlays).addTo(this.map);
+
+        // Adicionar handler de clique
+        this.map.on('click', (e) => {
+            this.handleMapClick(e);
+        });
+
+        return this.map;
+    }
+
+    /**
+     * Adiciona camada base
+     * @param {string} name - Nome da camada
+     * @param {string} url - URL do tile
+     * @param {string} attribution - Atribuição
+     */
+    addBaseLayer(name, url, attribution = '') {
+        this.baseLayers[name] = L.tileLayer(url, {
+            attribution: attribution,
+            maxZoom: 18
+        });
+        
+        if (this.layerControl) {
+            this.layerControl.addBaseLayer(this.baseLayers[name], name);
+        }
+    }
+
+
+    /**
+     * Centraliza mapa nas coordenadas
+     * @param {number} lat - Latitude
+     * @param {number} lng - Longitude
+     * @param {number} zoom - Zoom (opcional)
+     */
+    setView(lat, lng, zoom = null) {
+        if (zoom) {
+            this.map.setView([lat, lng], zoom);
+        } else {
+            this.map.setView([lat, lng]);
+        }
+    }
+
+    /**
+     * Ajusta visualização para conter bounds
+     * @param {L.LatLngBounds} bounds - Bounds a conter
+     * @param {Object} options - Opções do fitBounds
+     */
+    fitBounds(bounds, options = { padding: [20, 20] }) {
+        this.map.fitBounds(bounds, options);
+    }
+
+    /**
+     * Adiciona marcador no mapa
+     * @param {number} lat - Latitude
+     * @param {number} lng - Longitude
+     * @param {Object|string} options - Opções do marcador ou título do marcador
+     * @param {string} popupContent - Conteúdo do popup
+     * @returns {L.Marker} Marcador criado
+     */
+    addMarker(lat, lng, options = {}, popupContent = '') {
+        // Se o segundo parâmetro for uma string, converte-a em { title: string }
+        if (typeof options === 'string') {
+            options = { title: options };
+        }
+
+        const marker = L.marker([lat, lng], options).addTo(this.map);
+
+        if (popupContent) {
+            marker.bindPopup(popupContent);
+        }
+
+        return marker;
+    }
+
+
+
+    /**
+     * Remove marcador do mapa
+     * @param {L.Marker} marker - Marcador a remover
+     * @returns {boolean} True se removido com sucesso
+     */
+    removeMarker(marker) {
+
+        // Se o mapa ainda não existir, tenta criá-lo automaticamente
+        if (!this.map) {
+            try {
+                this.map = L.map(this.containerId);
+            } catch {
+                return false; // Ambiente de teste sem L.map
+            }
+        }
+
+        if (marker &amp;&amp; this.map.hasLayer(marker)) {
+            this.map.removeLayer(marker);
+            return true;
+        }
+
+        return false;
+    }
+
+
+
+
+    /**
+     * Adiciona handler de clique no mapa
+     * @param {Function} handler - Função handler
+     */
+    addClickHandler(handler) {
+        this.clickHandlers.push(handler);
+    }
+
+
+    /**
+     * Processa clique no mapa
+     * @param {L.LeafletMouseEvent} event - Evento de clique
+     */
+    handleMapClick(event) {
+        this.clickHandlers.forEach(handler => {
+            try {
+                handler(event);
+            } catch (error) {
+                console.error('Erro no handler de clique:', error);
+            }
+        });
+    }
+
+    /**
+     * Obtém instância do mapa
+     * @returns {L.Map} Instância do mapa
+     */
+    getMap() {
+        return this.map;
+    }
+
+    /**
+     * Obtém bounds atuais do mapa
+     * @returns {L.LatLngBounds} Bounds atuais
+     */
+    getBounds() {
+        return this.map.getBounds();
+    }
+
+    /**
+     * Adiciona controle de legenda
+     * @param {string} content - Conteúdo HTML da legenda
+     * @param {string} position - Posição ('topleft', 'topright', 'bottomleft', 'bottomright')
+     * @returns {L.Control} Controle de legenda
+     */
+    addLegend(content, position = 'bottomleft') {
+        const legend = L.control({ position: position });
+        
+        legend.onAdd = () => {
+            const div = L.DomUtil.create('div', 'map-legend');
+            div.innerHTML = content;
+            return div;
+        };
+        
+        legend.addTo(this.map);
+        return legend;
+    }
+
+    /**
+     * Destroi o mapa e limpa recursos
+     */
+    destroy() {
+        if (this.map) {
+            this.map.remove();
+            this.map = null;
+        }
+        this.clickHandlers = [];
+        this.baseLayers = {};
+        this.overlays = {};
+    }
+
+     /**
+     * Fecha popup aberto no mapa
+     */
+    closePopup() {
+        if (this.map) {
+            this.map.closePopup();
+        }
+    }   
+}</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-backend_controllers_appManager.html">backend/controllers/appManager</a></li><li><a href="module-backend_controllers_poiManager.html">backend/controllers/poiManager</a></li><li><a href="module-backend_controllers_routeManager.html">backend/controllers/routeManager</a></li><li><a href="module-backend_controllers_searchManager.html">backend/controllers/searchManager</a></li><li><a href="module-backend_models_apiClient.html">backend/models/apiClient</a></li><li><a href="module-frontend_core_OverpassManager.html">frontend/core/OverpassManager</a></li><li><a href="module-frontend_core_mapManager.html">frontend/core/mapManager</a></li><li><a href="module-frontend_core_poiManager.html">frontend/core/poiManager</a></li><li><a href="module-frontend_core_profileManager.html">frontend/core/profileManager</a></li><li><a href="module-frontend_core_routeManager.html">frontend/core/routeManager</a></li><li><a href="module-frontend_core_searchManager.html">frontend/core/searchManager</a></li><li><a href="module-frontend_core_stateManager.html">frontend/core/stateManager</a></li><li><a href="module-frontend_ui_uiController.html">frontend/ui/uiController</a></li></ul><h3>Classes</h3><ul><li><a href="module-backend_models_apiClient-APIClient.html">APIClient</a></li><li><a href="module-frontend_core_OverpassManager-OverpassManager.html">OverpassManager</a></li><li><a href="module-frontend_core_mapManager-OverpassManager.html">OverpassManager</a></li><li><a href="module-frontend_core_poiManager-POIManager.html">POIManager</a></li><li><a href="module-frontend_core_profileManager.ProfileManager.html">ProfileManager</a></li><li><a href="module-frontend_core_routeManager.RouteManager.html">RouteManager</a></li><li><a href="module-frontend_core_searchManager-SearchManager.html">SearchManager</a></li><li><a href="module-frontend_core_stateManager.StateManager.html">StateManager</a></li><li><a href="module-frontend_ui_uiController-UIController.html">UIController</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.5</a> on Sun Dec 07 2025 17:25:18 GMT+0000 (Hora padrão da Europa Ocidental)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>
