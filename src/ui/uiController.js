@@ -183,9 +183,9 @@ class UIController {
      * Inicializa componentes da UI
      */
     initializeUI() {
-    // Adicionar legenda
-    const legendContent = this.profileManager.generateLegendHTML();
-    this.mapManager.addLegend(legendContent);
+    // Adicionar legenda - devido aos temas ja nao e usado
+    // const legendContent = this.profileManager.generateLegendHTML();
+    // this.mapManager.addLegend(legendContent);
 
     // Popular dropdown de perfis
     this.populateProfileDropdown();
