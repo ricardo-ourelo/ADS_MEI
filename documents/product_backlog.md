@@ -129,14 +129,23 @@ O projeto será desenvolvido em **2 sprints**, seguindo a metodologia **Scrum** 
 
 ---
 
-### **US09 —  Melhorias de UI e Refino de Funcionalidades**
+### **US09 — Melhoria das Métricas de Código (Qualidade Interna)**
 
-**Como utilizador**
-quero que a interface e certas funcionalidades do sistema sejam mais claras, consistentes e fáceis de utilizar
-para ter uma experiência mais fluida ao planear rotas e explorar o mapa.
+**Como equipa de desenvolvimento**
+queremos melhorar a qualidade interna do código (métricas, legibilidade, cobertura de testes, complexidade e desacoplamento)
+**para garantir maior manutenibilidade, extensibilidade e estabilidade do sistema.**
 
+Esta User Story foca-se **exclusivamente na qualidade interna da implementação**, não introduzindo novas funcionalidades visuais nem alterações funcionais ao comportamento do sistema.
 
-Inclui apenas melhorias e polimento de UI e UX. Não inclui novas funcionalidades estruturais.
+* **Critérios de Aceitação**
+
+* Redução comprovada da **complexidade ciclomática** nos módulos mais críticos.
+* Aumento da **cobertura de testes unitários** nas camadas *Core* e *UIController*.
+* Remoção de **código duplicado** e funções redundantes.
+* Melhor organização modular, garantindo que cada classe possui **responsabilidade clara (SRP)**.
+* Deteção e eliminação de **code smells** (métodos longos, classes excessivamente grandes, acoplamento elevado).
+* Reformulação de **interfaces internas** para melhorar a coesão entre módulos.
+* Execução limpa de **linters e ferramentas automáticas**, sem erros (ESLint, Prettier).
 
 ---
 
